@@ -11,7 +11,7 @@ THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
-export const APP_VERSION = '0.3.0-preview';
+export const APP_VERSION = '0.4.0-preview';
 const $ = (s) => document.querySelector(s);
 
 // ---------- renderer / scene ----------
@@ -521,6 +521,11 @@ function loop(now) {
   if (qs.has('labels')) { state.labels = true; }
   if (qs.has('spread')) { state.spread = Number(qs.get('spread')); $('#spread').value = qs.get('spread'); applySpread(); }
   if (qs.has('view')) { const v = VIEWS[qs.get('view')]; camera.position.copy(HOME_TARGET).add(v.clone().normalize().multiplyScalar(HOME_DIST)); }
+  if (qs.has('cam')) { // test hook: cam=dx,dy,dz,dist[,tx,ty,tz]
+    const [x, y, z, d, tx, ty, tz] = qs.get('cam').split(',').map(Number);
+    if (tx !== undefined) controls.target.set(tx, ty, tz);
+    camera.position.copy(controls.target).add(new THREE.Vector3(x, y, z).normalize().multiplyScalar(d || HOME_DIST));
+  }
   if (qs.has('sel')) { select(qs.get('sel')); if (qs.has('iso')) toggleIsolate(true); if (qs.has('zoom')) { anim = null; const c = focusCenter(state.selected); const d = camera.position.clone().sub(controls.target).normalize(); camera.position.copy(c).add(d.multiplyScalar(focusRadius(state.selected) * 5 + 9)); controls.target.copy(c); } }
   $('#loading').classList.add('done');
   window.__ready = { loadMs: Math.round(performance.now() - t0) };

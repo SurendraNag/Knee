@@ -119,3 +119,7 @@ button.danger:hover:not(:disabled) { background: #f15c61; }
 .info .actions button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); }
 @media (max-width: 760px) { #cube-wrap { top: calc(84px + env(safe-area-inset-top)); bottom: auto; right: 16px; width: 52px; height: 52px; transform: scale(0.82); transform-origin: top right; }
   .spread input { flex: 1; } .group.spread { flex: 1 1 100%; } .lbl { font-size: 11px; } }
+
+.credit { position: absolute; left: 16px; top: 108px; max-width: 260px; font-size: 10.5px; line-height: 1.35; color: var(--muted); opacity: 0.8; }
+.credit a { color: inherit; }
+@media (max-width: 700px) { .credit { top: auto; bottom: calc(6px + env(safe-area-inset-bottom)); left: 8px; right: 8px; max-width: none; font-size: 9px; text-align: center; z-index: 1; } }
