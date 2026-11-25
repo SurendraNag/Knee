@@ -103,6 +103,18 @@ export function makeMaterials() {
     meniscus: () => addSurfaceNoise(new THREE.MeshPhysicalMaterial({
       ...common, color: 0xc3d3de, roughness: 0.25, clearcoat: 0.9, clearcoatRoughness: 0.12, sheen: 0.5, sheenColor: 0xfff8ec,
     }), { scale: [4, 4, 4], bump: 0.008, colorVar: 0.06 }),
+    spinaldisc: () => addSurfaceNoise(new THREE.MeshPhysicalMaterial({
+      ...common, color: 0xc7d0cf, roughness: 0.3, clearcoat: 0.7, clearcoatRoughness: 0.18, sheen: 0.5, sheenColor: 0xfff6e6,
+    }), { scale: [4, 4, 4], bump: 0.008, colorVar: 0.07 }),
+    jawdisc: () => addSurfaceNoise(new THREE.MeshPhysicalMaterial({
+      ...common, color: 0xc3d3de, roughness: 0.25, clearcoat: 0.9, clearcoatRoughness: 0.12, sheen: 0.5, sheenColor: 0xfff8ec,
+    }), { scale: [6, 6, 6], bump: 0.008, colorVar: 0.06 }),
+    brain: () => addSurfaceNoise(new THREE.MeshPhysicalMaterial({
+      ...common, color: 0xd9a7a0, roughness: 0.45, clearcoat: 0.5, clearcoatRoughness: 0.3, sheen: 0.5, sheenColor: 0xffd6cf,
+    }), { scale: [5, 5, 5], bump: 0.01, colorVar: 0.08 }),
+    eye: () => new THREE.MeshPhysicalMaterial({
+      ...common, color: 0xf1eee6, roughness: 0.15, clearcoat: 1.0, clearcoatRoughness: 0.05, sheen: 0.3, sheenColor: 0xffffff,
+    }),
     muscle: () => new THREE.MeshPhysicalMaterial({
       ...common, color: 0xffffff, map: musTex, bumpMap: musBump, bumpScale: 2.5, roughness: 0.42, sheen: 0.8, sheenRoughness: 0.4, sheenColor: 0xd9776a, clearcoat: 0.35, clearcoatRoughness: 0.35,
     }),

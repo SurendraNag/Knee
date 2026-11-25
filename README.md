@@ -30,6 +30,16 @@ left leg opens on the left leg.
 3. Tap the exact spot. The injury snaps to the nearest surface and gets a numbered red tag with a one-sentence explanation.
    Use **Undo last**, the **×** next to an injury, or the red **Clear all** button.
 
+**Show… (one joint, chosen tissues)**
+- **Show…** (next to Vessels and nerves; on a phone under **More**) picks what is drawn:
+  - **Joint**: the whole leg, or the hip, knee or ankle joint only. Everything outside a box around that joint is cut away,
+    and the cut faces of bones show as flat cross-sections. Other pages offer their own joints (wrist, thumb, fingers;
+    shoulder, AC joint, elbow; neck, low back, sacroiliac joints; right or left jaw joint, shown as a side slice through the joint).
+  - **Tissues**: tick bones, cartilage (with menisci and labrum), ligaments and joint capsule, tendons, discs, muscles, nerves,
+    blood vessels, brain and eyes, or skin, or use a preset such as **Bones and ligaments**. While tissues are chosen here the
+    Layers slider and Vessels and nerves button are set aside; moving either one goes back to the normal layers.
+- A bar at the top says what is shown, with **Change** and **Show all**. The choice is kept in share links and saved cases.
+
 **Double-tap zoom** (double-click with a mouse)
 - Double-tap a body part to fly in to it (its name and description show, everything around it stays solid).
 - Double-tap again on a spot to go closer to that spot, as many times as you like.
@@ -86,6 +96,41 @@ are kept separately.
 
 The data is built by `scripts/build-shoulder.mjs` into `public/shoulder/` from `data/bodyparts3d/shoulder-extra.*`
 (extracted by `scripts/extract-region.mjs <model> shoulder`). The region's fade at its cut edges is `fade()` in `src/shoulder-structures.js`.
+
+## Spine and Pelvis Explainer (`spine.html`)
+
+Pick **Spine and pelvis** from the body-part menu (or open `/spine.html`). It shows the whole spine from the atlas (C1) to the sacrum
+with the ribs, breastbone and both hip bones. Both sides are scanned, so there is no left/right switch; the side views are
+**Left side** and **Right side**. **Spread apart** pulls the vertebrae and discs apart level by level.
+
+- **Go to…**: spine, ribs and pelvis, neck, upper back (from behind), chest and ribs, low back (side and behind), pelvis.
+- Scanned (BodyParts3D): all 24 vertebrae (C1 to L5, each its own structure), the sacrum, both hip bones, all ribs, the breastbone and
+  rib cartilage, the back, neck, belly-wall, rib, hip-flexor and pelvic-floor muscles (16 groups), the aorta and iliac arteries,
+  vertebral, intercostal and lumbar arteries, the vena cava and trunk veins, and the skin of the trunk.
+- The 23 intervertebral discs (C2-C3 to L5-S1) follow the scanned discs' outlines but are rebuilt as rings so they can show tears.
+- Modelled: the spinal cord and cauda equina, a pair of nerve roots at every disc level, the anterior and posterior longitudinal
+  ligaments and the posterior sacroiliac ligaments. Not in this version: the coccyx, facet joint cartilage and the smaller spinal ligaments.
+- Injuries (**preview, waiting for doctor review**): herniated ("slipped") discs and annular tears at any level, fractures of every
+  vertebra (compression fractures, spondylolysis, dens fractures), rib, breastbone, sacral and pelvic fractures, and sprains of the
+  spinal and sacroiliac ligaments.
+
+Built by `scripts/build-spine.mjs` into `public/spine/` from `data/bodyparts3d/trunk-extra.*` (`scripts/extract-region.mjs <model> trunk`).
+
+## Skull and Face Explainer (`head.html`)
+
+Pick **Skull and face** from the body-part menu (or open `/head.html`). It shows the skull, face and jaw with the top of the neck.
+Both sides are scanned, so there is no left/right switch. **Spread apart** pulls the skull bones apart.
+
+- **Go to…**: head, face, eye socket, jaw and teeth, jaw joint (TMJ), top and back of the skull, base of the skull (from below).
+- Scanned (BodyParts3D): the frontal, parietal, temporal, occipital, sphenoid and ethmoid bones, nasal bones, upper jaw, cheekbones,
+  palatine bones, vomer, lacrimal bones, lower jaw, upper and lower teeth, hyoid, atlas and axis; the brain (cerebrum, cerebellum,
+  brainstem), the eyes, optic and eye nerves, the arteries of the brain; eye, upper neck, floor of the mouth, tongue and soft palate
+  muscles; the skin of the head with the ears. Turn on **See through bone** to see the brain inside the skull.
+- Modelled: the two jaw joint (TMJ) discs. Not in this version: the chewing muscles (masseter, temporalis) and the face muscles.
+- Injuries (**preview, waiting for doctor review**): fractures of every skull and face bone (broken nose, cheekbone and orbital floor
+  fractures, jaw fractures, skull fractures, depressed fractures), broken teeth, dens fractures, and a displaced or torn jaw joint disc.
+
+Built by `scripts/build-head.mjs` into `public/head/` from `data/bodyparts3d/head-extra.*` (`scripts/extract-region.mjs <model> head`).
 
 ## Whole-body explorer (`body.html`)
 

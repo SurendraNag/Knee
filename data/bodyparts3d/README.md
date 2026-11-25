@@ -25,3 +25,12 @@ reads them, smooths them and adds modelled cartilage, wrist and finger ligaments
 breastbone, muscles, arteries, veins, the forearm's interosseous membrane and the skin of the arm, shoulder and right upper chest and
 back) from the same package, converted by `scripts/extract-region.mjs` (region `shoulder`) to cm with the origin near the humeral head
 and the scan's axes. `scripts/build-shoulder.mjs` smooths them and adds the modelled cartilage, labrum, ligaments, tendons and nerves.
+
+`trunk-extra.json` + `trunk-extra.bin` (gzip) hold the spine, discs, sacrum, hip bones, ribs, breastbone, trunk muscles, the main
+trunk arteries and veins and the skin of the trunk, converted by `scripts/extract-region.mjs` (region `trunk`; cm, origin in front of
+L5, scan axes). `scripts/build-spine.mjs` rebuilds the discs as rings and adds the modelled spinal cord, nerve roots and ligaments.
+
+`head-extra.json` + `head-extra.bin` (gzip) hold the skull, face and jaw bones, teeth, hyoid, atlas and axis, the brain surface parts,
+eyes, cranial nerves, brain arteries, head and upper neck muscles, the skin of the head and the outer ears, converted by
+`scripts/extract-region.mjs` (region `head`; cm, origin near the middle of the skull, scan axes). `scripts/build-head.mjs` smooths
+them and adds the modelled jaw joint discs.

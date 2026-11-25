@@ -201,3 +201,17 @@ button.mini { min-height: 28px; padding: 3px 10px; font-size: 12px; }
 .embed-only { display: none; }
 .embed .embed-only { display: inline-flex; }
 .dlg h3 { margin: 14px 0 2px; font-size: 13px; }
+
+/* ---------- Show: one joint, chosen tissues ---------- */
+.show-chip { position: absolute; left: 50%; transform: translateX(-50%); top: calc(104px + env(safe-area-inset-top)); display: flex; align-items: center; gap: 8px;
+  background: var(--panel); border: 1px solid var(--accent); border-radius: 12px; padding: 5px 6px 5px 12px; font-size: 13.5px; max-width: calc(100% - 32px); z-index: 4; }
+.show-chip .txt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.show-chip button { min-height: 30px; padding: 3px 10px; font-size: 13px; flex: none; }
+.show-joints, .show-tissues { display: grid; gap: 6px; }
+.show-tissues { grid-template-columns: 1fr 1fr; }
+.show-joints label, .show-tissues label { display: flex; gap: 8px; align-items: center; font-size: 14.5px; cursor: pointer; }
+.show-joints input, .show-tissues input { width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+.show-presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.show-presets button { font-size: 13px; padding: 5px 10px; min-height: 32px; }
+#dlg-body .row button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+@media (max-width: 640px) { .show-chip { top: calc(124px + env(safe-area-inset-top)); } .show-tissues { grid-template-columns: 1fr; } }

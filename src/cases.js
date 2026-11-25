@@ -9,6 +9,7 @@ export function snapshot({ state, camera, controls, injuries }) {
     sd: state.side === 'left' ? 1 : undefined,
     p: state.peel, x: state.xray ? 1 : 0, s: r3(state.spread), ve: state.vessels ? 1 : 0, l: state.labels ? 1 : 0,
     c: [...camera.position.toArray(), ...controls.target.toArray()].map(r3),
+    j: state.joint || undefined, t: state.tissues ? [...state.tissues] : undefined,
     sel: state.mode === 'explore' ? state.selected || undefined : undefined,
     i: (injuries ? injuries.list : []).map((j) => [j.id, j.type, j.seed, j.anchor.p.map(r3), j.anchor.n.map(r3), j.anchor.u === undefined ? null : r3(j.anchor.u)]),
   };

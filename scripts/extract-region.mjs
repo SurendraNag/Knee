@@ -26,6 +26,37 @@ const REGIONS = {
     // skin round the arm, plus the right half of the upper chest, shoulder top and upper back
     skin: (x, y, z) => x < 0.01 && y > 0.97 && y < 1.53 && (y > 1.22 || segDist([x, y, z], [-0.19, 1.38, -0.03], [-0.22, 1.11, -0.02]) < 0.075 || segDist([x, y, z], [-0.22, 1.11, -0.02], [-0.25, 0.95, 0.0]) < 0.06),
   },
+  // the spine from the atlas to the sacrum, with the pelvis, ribs and breastbone; origin in front of the fifth lumbar vertebra's body
+  trunk: {
+    O: [0, 1.0, -0.05],
+    take: (p, c) => {
+      if (Math.abs(c[0]) > 0.2 || c[1] < 0.8 || c[1] > 1.64 || c[2] < -0.16 || c[2] > 0.16) return false;
+      if (p.system === 'skeletal') return /vertebra|^Atlas$|^Axis$|^Sacrum$|hip bone$| rib$|costal cartilage$|^Body of sternum$|^Manubrium$|^Xiphoid process$|^Intervertebral disk/.test(p.name);
+      if (p.system === 'muscular') return /iliocostalis|longissimus|spinalis|rotator|intertransvers|interspinal|levatores costarum|serratus posterior|splenius|trapezius|rhomboid|psoas|iliacus|piriformis|coccygeus|iliococcygeus|pubococcygeus|external oblique|external intercostal|transversus thoracis|longus colli|longus capitis|scalen|sternocleidomastoid|obliquus capitis|rectus capitis/i.test(p.name);
+      if (p.system === 'arterial') return /aorta$|^Descending aorta|common iliac artery|internal iliac artery|external iliac artery|vertebral artery|posterior intercostal arteries|lumbar arter|subclavian artery|median sacral artery/i.test(p.name);
+      if (p.system === 'venous') return /vena cava|common iliac vein|azygos|intercostal veins|lumbar vein|internal iliac vein|external iliac vein/i.test(p.name);
+      return p.name === 'Levator scapulae' ;
+    },
+    skin: (x, y, z) => {
+      if (Math.abs(x) > 0.2 || y < 0.82 || y > 1.5) return false;
+      for (const s of [-1, 1]) { const S = [s * 0.19, 1.38, -0.03], E = [s * 0.22, 1.11, -0.02], W = [s * 0.25, 0.88, 0.02]; if (segDist([x, y, z], S, E) < 0.055 || segDist([x, y, z], E, W) < 0.05) return false; }
+      return true;
+    },
+  },
+  // the skull, face, jaw and teeth with the brain, eyes and the top of the neck; origin near the middle of the skull
+  head: {
+    O: [0, 1.6, -0.02],
+    take: (p, c) => {
+      if (Math.abs(c[0]) > 0.13 || c[1] < 1.48 || c[2] < -0.16 || c[2] > 0.16) return false;
+      if (/arytenoid|cuneiform|corniculate|Thyroid cartilage|vocalis|aryepiglott|thyrohyoid|thyro-arytenoid/i.test(p.name)) return false;
+      if (p.system === 'skeletal') return !/vertebra$|Intervertebral|Gingiva|alar cartilage/.test(p.name) || /^(Atlas|Axis)$/.test(p.name);
+      if (p.system === 'sensory') return /sclera|cornea|iris|^Left lens$|^Right lens$|lacrimal bone|External ear|lacrimal gland/.test(p.name);
+      if (p.system === 'nervous') return /nerve|ganglion|gyrus|lobe|Cerebellum|^Pons$|Medulla oblongata|^Midbrain$|Peduncle|Optic chiasm|optic tract|insula/i.test(p.name);
+      if (p.system === 'muscular') return !/trapezius|intertransvers|longus colli/.test(p.name);
+      return /arterial|venous/.test(p.system);
+    },
+    skin: (x, y, z) => y > 1.47,
+  },
 };
 const R = REGIONS[REGION];
 const conv = (x, y, z) => [(x - R.O[0]) * 100, (y - R.O[1]) * 100, (z - R.O[2]) * 100];
@@ -51,4 +82,4 @@ fs.writeFileSync(`data/bodyparts3d/${REGION}-extra.bin`, zlib.gzipSync(Buffer.co
 fs.writeFileSync(`data/bodyparts3d/${REGION}-extra.json`, JSON.stringify(index, null, 0));
 console.log(index.length, 'parts', (off / 1e6).toFixed(1), 'MB raw');
 const sys = {}; for (const e of index) sys[e.system] = (sys[e.system] || 0) + 1; console.log(sys);
-console.log(index.filter((e) => e.system !== 'arterial' && e.system !== 'venous').map((e) => e.id + ' ' + e.name).join('\n'));
+if (process.env.LIST) console.log(index.map((e) => e.id + ' ' + e.system + ' ' + e.name + ' ' + e.vc).join('\n'));

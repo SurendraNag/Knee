@@ -35,6 +35,14 @@ export const INJURY_TYPES = {
     { type: T.SPLIT, label: 'Central tear', sub: 'Split through the pad', say: (s) => `The ${s} has a tear through its thin centre, which can cause clicking and pain on the little-finger side of the wrist.` },
     { type: T.FLAP, label: 'Peripheral tear', sub: 'Torn loose at its edge', say: (s) => `The ${s} has torn loose at its edge, so it no longer holds the ends of the forearm bones firmly together.` },
   ],
+  spinaldisc: [
+    { type: T.FLAP, label: 'Herniated disc', sub: 'Soft centre pushed out backward', say: (s) => `The ${s} is herniated ("slipped"): its soft centre has pushed out through a tear in the tough outer ring, backward toward the spinal canal, where it can press on a nerve root or the spinal cord.` },
+    { type: T.SPLIT, label: 'Annular tear', sub: 'Crack in the outer ring', say: (s) => `The outer ring of the ${s} has a crack. It can be painful on its own and is often the first step before a herniation.` },
+  ],
+  jawdisc: [
+    { type: T.FLAP, label: 'Displaced disc', sub: 'Slipped forward', say: (s) => `The ${s} has slipped forward off the top of the jaw bone. The jaw clicks when the disc pops back in on opening, or locks when it cannot.` },
+    { type: T.SPLIT, label: 'Disc tear', sub: 'Torn or worn through', say: (s) => `The ${s} is torn or worn through, so the bones of the jaw joint can grind, which is painful when chewing.` },
+  ],
   bone: [
     { type: T.HAIRLINE, label: 'Hairline crack', sub: 'Thin crack, no shift', say: (s) => `A thin crack runs through the ${s}; the pieces have not moved apart.` },
     { type: T.DISPLACED, label: 'Displaced break', sub: 'Pieces shifted apart', say: (s) => `The ${s} is broken clean through and the pieces have shifted out of line.` },
@@ -45,7 +53,7 @@ export const INJURY_TYPES = {
 };
 export const injuryKind = (id) => {
   const k = STRUCTURES[id]?.injury || STRUCTURES[id]?.kind;
-  return k === 'bone' || k === 'ligament' || k === 'tendon' || k === 'meniscus' || k === 'labrum' || k === 'disc' ? k : null;
+  return k === 'bone' || k === 'ligament' || k === 'tendon' || k === 'meniscus' || k === 'labrum' || k === 'disc' || k === 'spinaldisc' || k === 'jawdisc' ? k : null;
 };
 export const typeInfo = (kind, type) => INJURY_TYPES[kind].find((t) => t.type === type);
 

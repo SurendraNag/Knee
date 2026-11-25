@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "build:anatomy": "node scripts/build-anatomy.mjs",
     "build:hand": "node scripts/build-hand.mjs",
-    "build:shoulder": "node scripts/build-shoulder.mjs"
+    "build:shoulder": "node scripts/build-shoulder.mjs",
+    "build:spine": "node scripts/build-spine.mjs",
+    "build:head": "node scripts/build-head.mjs"
   },
   "license": "UNLICENSED",
   "dependencies": {

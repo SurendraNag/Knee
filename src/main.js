@@ -28,6 +28,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.82;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.localClippingEnabled = true; // "Show": cut everything to one joint
 
 const scene = new THREE.Scene();
 const pmrem = new THREE.PMREMGenerator(renderer);
@@ -71,7 +72,7 @@ controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
 
 // ---------- state ----------
 const meshes = {}; // id -> mesh
-const state = { hidden: new Set(), vessels: true, peel: 2, xray: false, selected: null, isolate: false, labels: false, spread: 0, mode: 'explore', step: 1, injTarget: null, injType: null };
+const state = { hidden: new Set(), vessels: true, peel: 2, xray: false, selected: null, isolate: false, labels: false, spread: 0, mode: 'explore', step: 1, injTarget: null, injType: null, joint: null, tissues: null };
 let injuries = null;
 
 // ---------- side: right or left leg ----------
@@ -95,7 +96,7 @@ camera.updateProjectionMatrix = () => {
 const SIDE_TEXT = {}; // original structure text, so "right" can be swapped for "left"
 function sideWords(t) { return state.side === 'left' ? t.replace(/\bright\b/g, 'left').replace(/\bRight\b/g, 'Left') : t; }
 function setSide(side) {
-  side = side === 'left' ? 'left' : 'right';
+  side = side === 'left' && CFG.sides !== false ? 'left' : 'right';
   state.side = side;
   camera.updateProjectionMatrix();
   for (const [id, s] of Object.entries(STRUCTURES)) {
@@ -185,7 +186,8 @@ function applyVisibility() {
     const id = mesh.userData.id;
     const focus = state.mode === 'explore' && state.selected && state.glass !== false;
     const spreadHide = state.spread > 0.02 && !SPREAD[id];
-    mesh.visible = layer >= state.peel && !spreadHide && !state.hidden.has(id) && (state.vessels || !VESSEL_KINDS.has(mesh.userData.info.kind)) && !(state.isolate && focus && id !== focus);
+    const shown = state.tissues ? state.tissues.has(tissueOf(id)) : layer >= state.peel && (state.vessels || !VESSEL_KINDS.has(mesh.userData.info.kind));
+    mesh.visible = shown && !spreadHide && !state.hidden.has(id) && inJointBox(mesh) && !(state.isolate && focus && id !== focus);
     let faded = state.xray && (layer === 4 || layer === 3 || layer <= 1 || mesh.userData.info.kind === 'tendon');
     // glass focus: everything except the selected structure turns to glass
     if (focus && id !== focus && !state.isolate) faded = true;
@@ -200,10 +202,133 @@ function applyVisibility() {
       else { m.alphaHash = true; m.transparent = false; m.depthWrite = true; m.opacity = 1; }
     }
     mesh.userData.faded = faded;
+    m.clippingPlanes = jointPlanes; m.clipShadows = false;
     m.needsUpdate = true;
+    updateCap(mesh, faded);
   }
-  $('#peel-label').textContent = state.peel === 0 ? 'Showing everything' : `Removed: ${LAYERS.slice(0, state.peel).join(', ')}`;
+  $('#peel-label').textContent = state.tissues ? 'Chosen with Show' : state.peel === 0 ? 'Showing everything' : `Removed: ${LAYERS.slice(0, state.peel).join(', ')}`;
+  renderShowChip();
   $('#xray').setAttribute('aria-pressed', String(state.xray));
+}
+
+// ---------- "Show": one joint only, and only the chosen kinds of tissue ----------
+// A joint is a box around its cartilage, ligaments and discs (CFG.joints[k].core, padded). Everything is cut to that box with
+// clipping planes; the cut faces are drawn flat (a back-face "cap" child mesh) so a cut bone reads as a cross-section.
+const JOINTS = CFG.joints || {};
+const TISSUES = [
+  ['bone', 'Bones', ['bone']],
+  ['cartilage', 'Cartilage, menisci and labrum', ['cartilage', 'meniscus', 'labrum']],
+  ['ligament', 'Ligaments and joint capsule', ['ligament', 'capsule', 'fascia']],
+  ['tendon', 'Tendons', ['tendon']],
+  ['disc', 'Discs', ['spinaldisc', 'jawdisc']],
+  ['muscle', 'Muscles', ['muscle']],
+  ['nerve', 'Nerves', ['nerve']],
+  ['vessel', 'Blood vessels', ['artery', 'vein']],
+  ['organ', 'Brain and eyes', ['brain', 'eye']],
+  ['skin', 'Skin', ['skin']],
+];
+const TISSUE_OF_KIND = Object.fromEntries(TISSUES.flatMap(([k, , kinds]) => kinds.map((kd) => [kd, k])));
+const tissueOf = (id) => TISSUE_OF_KIND[STRUCTURES[id].kind] || 'muscle';
+const PRESETS = [['Bones only', ['bone']], ['Bones and ligaments', ['bone', 'ligament']], ['Bones, cartilage and ligaments', ['bone', 'cartilage', 'ligament', 'disc']],
+  ['Bones and tendons', ['bone', 'tendon']], ['Bones and muscles', ['bone', 'muscle', 'tendon']], ['Bones, nerves and vessels', ['bone', 'nerve', 'vessel']]];
+let jointBox = null, jointPlanes = null;
+const _bb = new THREE.Box3();
+function boxOfJoint(k) {
+  const j = JOINTS[k]; if (!j) return null;
+  const b = new THREE.Box3();
+  for (const id of j.core) if (meshes[id]) { const g = meshes[id].geometry; if (!g.boundingBox) g.computeBoundingBox(); b.union(g.boundingBox); }
+  if (b.isEmpty()) return null;
+  const c = b.getCenter(new THREE.Vector3()); b.expandByScalar(j.pad ?? 3);
+  // half: cut through the middle of the joint, like a scan slice (for example '-x' removes the outer half of the right jaw joint)
+  if (j.half) { const ax = j.half[1]; if (j.half[0] === '-') b.min[ax] = c[ax]; else b.max[ax] = c[ax]; }
+  return b;
+}
+function inJointBox(mesh) {
+  if (!jointBox) return true;
+  const g = mesh.geometry; if (!g.boundingBox) g.computeBoundingBox();
+  return _bb.copy(g.boundingBox).translate(mesh.position).intersectsBox(jointBox);
+}
+const inJoint = (p) => !jointBox || jointBox.containsPoint(p);
+function setJoint(k, { fly = true } = {}) {
+  state.joint = JOINTS[k] ? k : null;
+  jointBox = state.joint ? boxOfJoint(state.joint) : null;
+  if (!jointBox) state.joint = null;
+  const b = jointBox;
+  jointPlanes = b ? [new THREE.Plane(new THREE.Vector3(1, 0, 0), -b.min.x), new THREE.Plane(new THREE.Vector3(-1, 0, 0), b.max.x),
+    new THREE.Plane(new THREE.Vector3(0, 1, 0), -b.min.y), new THREE.Plane(new THREE.Vector3(0, -1, 0), b.max.y),
+    new THREE.Plane(new THREE.Vector3(0, 0, 1), -b.min.z), new THREE.Plane(new THREE.Vector3(0, 0, -1), b.max.z)] : null;
+  if (state.selected && meshes[state.selected] && !inJointBox(meshes[state.selected])) select(null);
+  applyVisibility();
+  if (fly && b) {
+    const j = JOINTS[state.joint], r = REGIONS[j.region] || {};
+    const size = b.getSize(new THREE.Vector3()).length();
+    zoomStack.length = 0;
+    flyTo(b.getCenter(new THREE.Vector3()), new THREE.Vector3(...(j.dir || r.dir || CFG.home.dir)), Math.max(size * 1.9, CFG.minDistance || 6), 800);
+  }
+}
+// flat cut faces: a back-face copy of the mesh, only drawn where the cut opens the inside of a surface
+function updateCap(mesh, faded) {
+  let cap = mesh.userData.cap;
+  if (!jointPlanes) { if (cap) cap.visible = false; return; }
+  if (!cap) {
+    const c = mesh.material.color.clone().multiplyScalar(0.72);
+    cap = new THREE.Mesh(mesh.geometry, new THREE.MeshBasicMaterial({ color: c, side: THREE.BackSide }));
+    cap.raycast = () => {}; mesh.userData.cap = cap; mesh.add(cap);
+  }
+  cap.material.clippingPlanes = jointPlanes; cap.material.needsUpdate = true;
+  cap.visible = !faded;
+}
+function setTissues(list) {
+  state.tissues = list && list.length ? new Set(list) : null;
+  if (state.selected && meshes[state.selected] && state.tissues && !state.tissues.has(tissueOf(state.selected))) select(null);
+  applyVisibility();
+}
+// a structure chosen from the list or a label must not stay hidden by the filter
+function revealFor(id) {
+  if (state.tissues && !state.tissues.has(tissueOf(id))) state.tissues.add(tissueOf(id));
+  if (jointBox && meshes[id] && !inJointBox(meshes[id])) setJoint(null, { fly: false });
+}
+const PRESENT_TISSUES = () => TISSUES.filter(([k]) => Object.keys(meshes).some((id) => tissueOf(id) === k));
+function renderShowChip() {
+  let chip = $('#show-chip');
+  if (!state.joint && !state.tissues) { if (chip) chip.hidden = true; return; }
+  if (!chip) {
+    chip = document.createElement('div'); chip.id = 'show-chip'; chip.className = 'show-chip';
+    chip.innerHTML = '<span class="txt"></span><button class="chg">Change</button><button class="clr" aria-label="Show everything">Show all</button>';
+    document.body.appendChild(chip);
+    chip.querySelector('.chg').addEventListener('click', () => openShow());
+    chip.querySelector('.clr').addEventListener('click', () => { setTissues(null); setJoint(null, { fly: false }); resetView(); });
+  }
+  chip.hidden = false;
+  const parts = [];
+  if (state.joint) parts.push(JOINTS[state.joint].label);
+  if (state.tissues) { const names = TISSUES.filter(([k]) => state.tissues.has(k)).map(([, n]) => n.split(',')[0].split(' and ')[0]); parts.push(names.join(', ')); }
+  chip.querySelector('.txt').textContent = parts.join(' · ');
+}
+function openShow() {
+  const present = PRESENT_TISSUES();
+  const on = (k) => !state.tissues || state.tissues.has(k);
+  openDialog('Show', `
+    <h3>Joint</h3>
+    <div class="show-joints">
+      <label><input type="radio" name="show-joint" value=""${!state.joint ? ' checked' : ''}> Whole ${esc(CFG.part)}</label>
+      ${Object.entries(JOINTS).map(([k, j]) => `<label><input type="radio" name="show-joint" value="${k}"${state.joint === k ? ' checked' : ''}> ${esc(j.label)} only</label>`).join('')}
+    </div>
+    <h3>Tissues</h3>
+    <div class="show-presets">${PRESETS.filter(([, l]) => l.some((k) => present.some(([p]) => p === k))).map(([n], i) => `<button data-preset="${i}">${n}</button>`).join('')}</div>
+    <div class="show-tissues">${present.map(([k, n]) => `<label><input type="checkbox" value="${k}"${on(k) ? ' checked' : ''}> ${n}</label>`).join('')}</div>
+    <div class="row"><button id="show-all">Show everything</button><button id="show-done" class="primary">Done</button></div>`);
+  const body = $('#dlg-body');
+  const readTissues = () => { const l = [...body.querySelectorAll('.show-tissues input:checked')].map((i) => i.value); return l.length === present.length ? null : l; };
+  body.querySelectorAll('[name=show-joint]').forEach((r) => r.addEventListener('change', () => { if (r.checked) { setJoint(r.value || null); if (!r.value) resetView(); } }));
+  body.querySelectorAll('.show-tissues input').forEach((c) => c.addEventListener('change', () => setTissues(readTissues() || [])));
+  body.querySelectorAll('[data-preset]').forEach((b) => b.addEventListener('click', () => {
+    const l = PRESETS[Number(b.dataset.preset)][1];
+    body.querySelectorAll('.show-tissues input').forEach((c) => { c.checked = l.includes(c.value); });
+    setTissues(readTissues() || []);
+  }));
+  $('#show-all').addEventListener('click', () => { setTissues(null); setJoint(null, { fly: false }); closeDialog(); resetView(); });
+  $('#show-done').addEventListener('click', () => closeDialog());
 }
 
 // ---------- camera animation ----------
@@ -283,6 +408,7 @@ function select(id, { glass = true } = {}) {
   state.selected = id; state.glass = glass;
   const panel = $('#info');
   if (!id) { panel.classList.add('hidden'); $('#picker').value = ''; state.isolate = false; applyVisibility(); frameFreeArea(); return; }
+  revealFor(id);
   const info = STRUCTURES[id];
   $('#info-group').textContent = info.group;
   $('#info-name').textContent = info.name;
@@ -325,7 +451,7 @@ let pendingTap = 0;
 // in glass focus everything else is faded, so allow picking any visible structure
 function pickHit() {
   const pickable = Object.values(meshes).filter((m) => m.visible && (!m.userData.faded || (state.selected && !state.xray)));
-  return ray.intersectObjects(pickable, false).filter((h) => fadeAt(h.point) > 0.5)[0] || null;
+  return ray.intersectObjects(pickable, false).filter((h) => fadeAt(h.point) > 0.5 && inJoint(h.point))[0] || null;
 }
 
 // ---------- double-tap zoom levels ----------
@@ -378,7 +504,7 @@ function injuryTap() {
     return;
   }
   const pickable = Object.values(meshes).filter((m) => m.visible && !m.userData.faded && injuryKind(m.userData.id));
-  const hits = ray.intersectObjects(Object.values(meshes).filter((m) => m.visible && !m.userData.faded), false).filter((h) => fadeAt(h.point) > 0.5);
+  const hits = ray.intersectObjects(Object.values(meshes).filter((m) => m.visible && !m.userData.faded), false).filter((h) => fadeAt(h.point) > 0.5 && inJoint(h.point));
   const hit = hits.find((h) => pickable.includes(h.object));
   if (hit) chooseInjTarget(hit.object.userData.id);
 }
@@ -501,7 +627,7 @@ function updateLabels() {
     const show = mesh.visible && (!mesh.userData.faded || id === state.selected) && (!state.selected || state.isolate ? true : true);
     if (!show) { el.style.display = 'none'; continue; }
     _lp.copy(labelAnchors[id]).add(mesh.position);
-    if (fadeAt(_lp) < 0.6 || _lp.distanceTo(controls.target) > camDist * 0.32) { el.style.display = 'none'; continue; }
+    if (fadeAt(_lp) < 0.6 || !inJoint(_lp) || _lp.distanceTo(controls.target) > camDist * 0.32) { el.style.display = 'none'; continue; }
     _ln.copy(_lp).project(camera);
     if (_ln.z > 1) { el.style.display = 'none'; continue; }
     const x = (_ln.x * 0.5 + 0.5) * w, y = (-_ln.y * 0.5 + 0.5) * h;
@@ -555,14 +681,16 @@ function buildPicker() {
 function wireUI() {
   document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
   $('#xray').addEventListener('click', () => { state.xray = !state.xray; applyVisibility(); });
-  $('#peel').addEventListener('input', (e) => { state.peel = Number(e.target.value); applyVisibility(); if (state.selected && !meshes[state.selected].visible) select(null); });
+  $('#peel').addEventListener('input', (e) => { state.peel = Number(e.target.value); state.tissues = null; applyVisibility(); if (state.selected && !meshes[state.selected].visible) select(null); });
   $('#zoom-in').addEventListener('click', () => zoomStructure(0.7));
   $('#zoom-out').addEventListener('click', () => zoomStructure(1.4));
   $('#zoom-reset').addEventListener('click', () => zoomStructure(0));
   $('#reset').addEventListener('click', () => { select(null); resetView(); });
   $('#info-close').addEventListener('click', () => select(null));
   $('#isolate').addEventListener('click', () => toggleIsolate());
-  $('#vessels').addEventListener('click', () => setVessels(!state.vessels));
+  $('#vessels').addEventListener('click', () => { if (state.tissues) { state.tissues = null; setVessels(true); } else setVessels(!state.vessels); });
+  { const b = document.createElement('button'); b.id = 'show'; b.className = 'toggle'; b.textContent = 'Show…'; b.title = 'Show one joint only, or only some tissues (for example bones and ligaments)';
+    $('#vessels').after(b); b.addEventListener('click', () => openShow()); }
   $('#labels').addEventListener('click', () => { state.labels = !state.labels; $('#labels').setAttribute('aria-pressed', String(state.labels)); });
   $('#spread').addEventListener('input', (e) => { state.spread = Number(e.target.value); applySpread(); });
   document.querySelectorAll('#cube .face').forEach((f) => f.addEventListener('click', () => {
@@ -578,8 +706,8 @@ function wireUI() {
     a.href = location.href; $('.modes').appendChild(a);
   }
   { // switch to another body part, keeping patient and embed mode
-    const PAGES = [['index.html', 'Leg'], ['hand.html', 'Hand'], ['shoulder.html', 'Shoulder'], ['body.html', 'Whole body']];
-    const here = { leg: 'index.html', hand: 'hand.html', shoulder: 'shoulder.html' }[LIMB];
+    const PAGES = [['index.html', 'Leg'], ['hand.html', 'Hand'], ['shoulder.html', 'Shoulder'], ['spine.html', 'Spine and pelvis'], ['head.html', 'Skull and face'], ['body.html', 'Whole body']];
+    const here = { leg: 'index.html', hand: 'hand.html', shoulder: 'shoulder.html', spine: 'spine.html', head: 'head.html' }[LIMB];
     const sel = $('#part-nav');
     if (sel) {
       sel.innerHTML = PAGES.filter(([p]) => !(EMBED && p === 'body.html')).map(([p, t]) => `<option value="${p}"${p === here ? ' selected' : ''}>${t}</option>`).join('');
@@ -610,6 +738,7 @@ function applySnap(sn) {
   state.spread = sn.s || 0; $('#spread').value = String(state.spread); applySpread();
   state.labels = !!sn.l; $('#labels').setAttribute('aria-pressed', String(state.labels));
   setVessels(!!sn.ve);
+  state.tissues = sn.t ? new Set(sn.t) : null; setJoint(sn.j || null, { fly: false });
   if (sn.c) { camera.position.set(sn.c[0], sn.c[1], sn.c[2]); controls.target.set(sn.c[3], sn.c[4], sn.c[5]); controls.update(); }
   injuries.set(injuryList(sn).filter((j) => meshes[j.id] && injuries.targets[j.id])); renderInjuryList();
   if (sn.m !== 1) select(sn.sel && meshes[sn.sel] ? sn.sel : null);
@@ -798,7 +927,7 @@ function loop(now) {
   computeLabelAnchors(); buildLabels();
   applyVisibility();
   // test hooks
-  window.__knee = { meshes, getSnap, applySnap, shareLink, saveImage, openCases, openShare, goRegion, REGIONS, setVessels, injuries, state, setMode, chooseInjTarget, renderInjuryList, THREE, camera, controls, flyTo, VIEWS, setView,
+  window.__knee = { meshes, setJoint, setTissues, openShow, getSnap, applySnap, shareLink, saveImage, openCases, openShare, goRegion, REGIONS, setVessels, injuries, state, setMode, chooseInjTarget, renderInjuryList, THREE, camera, controls, flyTo, VIEWS, setView,
     look(i, dist = 9, dir) { const inj = injuries.list[i]; const p = injuries.tagPoint(inj); const n = dir ? new THREE.Vector3(...dir).normalize() : new THREE.Vector3().fromArray(inj.anchor.n);
       anim = null; controls.target.copy(p); camera.position.copy(p).addScaledVector(n, dist); controls.update(); },
     addAt(id, type, frac, side = 0) { // frac along a swept structure, or [x,y,z] near a bone
@@ -811,6 +940,8 @@ function loop(now) {
   setSide(qs.get('side') === 'left' ? 'left' : 'right');
   if (qs.get('vessels') === '0') setVessels(false);
   if (qs.has('hide')) { for (const k of qs.get('hide').split(',')) for (const id of Object.keys(meshes)) if (id === k || STRUCTURES[id].kind === k) state.hidden.add(id); applyVisibility(); }
+  if (qs.has('tissues')) setTissues(qs.get('tissues').split(','));
+  if (qs.has('joint')) setJoint(qs.get('joint'), { fly: !qs.has('cam') });
   if (qs.has('peel')) { state.peel = Number(qs.get('peel')); $('#peel').value = qs.get('peel'); applyVisibility(); }
   if (qs.has('xray')) { state.xray = true; applyVisibility(); }
   if (qs.has('labels')) { state.labels = true; }

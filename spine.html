@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en" data-limb="spine">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<title>Spine and Pelvis Explainer</title>
+<meta name="theme-color" content="#0b0f14" />
+</head>
+<body>
+<div id="app">
+  <canvas id="c"></canvas>
+
+  <header class="topbar">
+    <div class="brand">Spine and Pelvis<span class="long"> Explainer</span> <span id="version" class="ver"></span></div>
+    <div class="disclaimer" role="note">Educational demo, not for diagnosis</div>
+  </header>
+
+  <nav class="modes" aria-label="Mode">
+    <button class="on" data-mode="explore">Explore</button>
+    <button data-mode="injury">Injury</button>
+    <select id="part-nav" aria-label="Other body parts"></select>
+  </nav>
+
+  <div class="toolbar">
+    <div class="group views" role="group" aria-label="Views">
+      <button data-view="front">Front</button>
+      <button data-view="back">Back</button>
+      <button data-view="outside">Right side</button>
+      <button data-view="inside">Left side</button>
+      <button id="reset" title="Reset view">Reset</button>
+    </div>
+    <div class="group">
+      <select id="region" aria-label="Go to a part of the spine"></select>
+    </div>
+    <div class="group more">
+      <button id="xray" aria-pressed="false" class="toggle">See through bone</button>
+      <button id="labels" aria-pressed="false" class="toggle">Labels</button>
+      <button id="vessels" aria-pressed="true" class="toggle" title="Show blood vessels and nerves">Vessels and nerves</button>
+    </div>
+    <div class="group peel">
+      <label for="peel">Layers</label>
+      <input id="peel" type="range" min="0" max="4" step="1" value="2" />
+      <span id="peel-label" class="peel-label"></span>
+    </div>
+    <div class="group spread more">
+      <label for="spread">Spread apart</label>
+      <input id="spread" type="range" min="0" max="1" step="0.01" value="0" />
+    </div>
+    <div class="group more">
+      <select id="picker" aria-label="Find a structure"></select>
+    </div>
+    <div class="group">
+      <button id="share" title="Copy a link that reopens this exact view and these injuries">Share</button>
+      <button id="snap" title="Download a picture of this view">Save image</button>
+      <button id="cases" title="Save this view and its injuries under a name on this device">Cases</button>
+      <button id="more" class="phone-only" aria-expanded="false">More</button>
+    </div>
+  </div>
+
+  <section id="info" class="info hidden" aria-live="polite">
+    <button id="info-close" class="close" aria-label="Close">×</button>
+    <div id="info-group" class="eyebrow"></div>
+    <h2 id="info-name"></h2>
+    <p id="info-what"></p>
+    <h3>Common injuries</h3>
+    <ul id="info-injuries"></ul>
+    <p id="info-note" class="note" hidden>Simplified shape in this version.</p>
+    <div class="actions">
+      <button id="isolate" aria-pressed="false">Show only this</button>
+      <button id="zoom-in">Zoom in</button>
+      <button id="zoom-out">Zoom out</button>
+      <button id="zoom-reset">Reset view</button>
+    </div>
+  </section>
+
+  <section id="injury" class="info injury hidden" aria-live="polite">
+    <div class="steps"><span data-step="1">1 Structure</span><span data-step="2">2 Injury</span><span data-step="3">3 Spot</span></div>
+    <div id="inj-step1"><p class="note preview">Preview: spine and pelvis injuries are waiting for a doctor to review them.</p><p class="lead">Tap a disc, a ligament or a bone, or pick one:</p>
+      <select id="inj-picker" aria-label="Pick a structure"></select></div>
+    <div id="inj-step2" hidden><div class="eyebrow" id="inj-target-group"></div><h2 id="inj-target"></h2>
+      <div id="inj-types" class="types"></div>
+      <div class="actions"><button id="inj-zoom-in">Zoom in</button><button id="inj-zoom-out">Zoom out</button><button id="inj-zoom-reset">Reset view</button><button id="inj-change">Change structure</button></div></div>
+    <div id="inj-step3" hidden><p class="lead" id="inj-tap-msg"></p><div class="actions"><button id="inj-cancel">Back</button></div></div>
+    <div id="inj-listwrap" hidden>
+      <h3>Injuries shown</h3>
+      <ol id="inj-list"></ol>
+      <div class="actions"><button id="inj-undo">Undo last</button><button id="inj-clear" class="danger">Clear all</button></div>
+    </div>
+  </section>
+  <section id="dlg" class="info dlg hidden" role="dialog" aria-modal="false" aria-labelledby="dlg-title">
+    <button id="dlg-close" class="close" aria-label="Close">×</button>
+    <h2 id="dlg-title"></h2>
+    <div id="dlg-body"></div>
+  </section>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <svg id="leaders"></svg>
+  <div id="labels-layer"></div>
+  <div id="tags"></div>
+  <div id="cube-wrap" title="Tap a face to turn the spine">
+    <div id="cube">
+      <div class="face f-front" data-face="front"><span>Front</span></div>
+      <div class="face f-back" data-face="back"><span>Back</span></div>
+      <div class="face f-in" data-face="inside"><span>Inside</span></div>
+      <div class="face f-out" data-face="outside"><span>Outside</span></div>
+      <div class="face f-top" data-face="top"><span>Top</span></div>
+      <div class="face f-bottom" data-face="bottom"><span>Bottom</span></div>
+    </div>
+  </div>
+  <div class="credit">Bones, muscles, vessels and skin: <a href="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html" target="_blank" rel="noopener">BodyParts3D</a>, © The Database Center for Life Science, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> (cropped and smoothed). The spinal cord, nerve roots and spinal ligaments are modelled; discs are reshaped from the scan.</div>
+  <div class="hint">Drag to rotate · pinch or scroll to zoom · tap a structure · double-tap to zoom in</div>
+  <div id="fps" class="fps" hidden></div>
+  <div id="loading"><div class="spinner"></div>Loading anatomy…</div>
+</div>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
