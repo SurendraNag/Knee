@@ -110,6 +110,31 @@ export const STRUCTURES = {
     what: 'The outer part of the main calf muscle. It helps bend the knee and points the foot.',
     injuries: ['Calf strain'],
   },
+  sartorius: {
+    name: 'Sartorius (strap muscle)', group: 'Muscle', layer: 1, kind: 'muscle', simplified: true,
+    what: 'The longest muscle in the body. It crosses the front of the thigh and wraps behind the inner knee, helping bend the knee and turn the leg.',
+    injuries: ['Strains', 'Pes anserine bursitis: pain on the inner shin just below the knee'],
+  },
+  gracilis: {
+    name: 'Gracilis', group: 'Muscle', layer: 1, kind: 'muscle', simplified: true,
+    what: 'A thin inner-thigh muscle. Its tendon joins sartorius and semitendinosus on the inner shin (the pes anserinus).',
+    injuries: ['Groin strains', 'Its tendon is often used to rebuild a torn ACL'],
+  },
+  semitendinosus: {
+    name: 'Semitendinosus (inner hamstring)', group: 'Muscle', layer: 1, kind: 'muscle', simplified: true,
+    what: 'An inner hamstring with a long, cord-like tendon that ends on the inner shin. It bends the knee.',
+    injuries: ['Hamstring strains', 'Its tendon is a common graft for ACL reconstruction'],
+  },
+  popliteus: {
+    name: 'Popliteus', group: 'Muscle', layer: 1, kind: 'muscle', simplified: true,
+    what: 'A small, flat muscle behind the knee. It "unlocks" the straight knee so it can start to bend.',
+    injuries: ['Tendinitis on the outer back of the knee', 'Injured with outer-corner ligament tears'],
+  },
+  it_band: {
+    name: 'Iliotibial (IT) band', group: 'Muscle', layer: 1, kind: 'fascia', simplified: true,
+    what: 'A thick band of tissue down the outside of the thigh that attaches just below the knee on the outer shin bone. It steadies the outer knee.',
+    injuries: ['IT band syndrome: pain on the outer knee in runners and cyclists'],
+  },
   skin: {
     name: 'Skin and fat', group: 'Skin', layer: 0, kind: 'skin', simplified: true,
     what: 'The outer covering of the knee. Peel it away with the Layers slider to see inside.',

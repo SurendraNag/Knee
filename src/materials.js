@@ -76,6 +76,9 @@ function fiberTexture({ base = [232, 224, 208], contrast = 38, crimp = 0.0 } = {
 }
 
 export function makeMaterials() {
+  const musTex = fiberTexture({ base: [205, 205, 205], contrast: 46, crimp: 0 });
+  const musBump = musTex.clone(); musBump.colorSpace = THREE.NoColorSpace; musBump.needsUpdate = true;
+  for (const t of [musTex, musBump]) t.repeat.set(0.12, 2.5);
   const ligTex = fiberTexture({ base: [226, 218, 202], contrast: 34, crimp: 0.6 });
   const tenTex = fiberTexture({ base: [236, 232, 222], contrast: 26, crimp: 0.3 });
   const ligBump = ligTex.clone(); ligBump.colorSpace = THREE.NoColorSpace; ligBump.needsUpdate = true;
@@ -100,9 +103,12 @@ export function makeMaterials() {
     meniscus: () => addSurfaceNoise(new THREE.MeshPhysicalMaterial({
       ...common, color: 0xc3d3de, roughness: 0.25, clearcoat: 0.9, clearcoatRoughness: 0.12, sheen: 0.5, sheenColor: 0xfff8ec,
     }), { scale: [4, 4, 4], bump: 0.008, colorVar: 0.06 }),
-    muscle: () => addSurfaceNoise(new THREE.MeshPhysicalMaterial({
-      ...common, color: 0x9a3b31, roughness: 0.55, sheen: 0.6, sheenColor: 0xff9a8a, clearcoat: 0.2, clearcoatRoughness: 0.5,
-    }), { scale: [9, 0.6, 9], bump: 0.03, colorVar: 0.18 }),
+    muscle: () => new THREE.MeshPhysicalMaterial({
+      ...common, color: 0xffffff, map: musTex, bumpMap: musBump, bumpScale: 2.5, roughness: 0.42, sheen: 0.8, sheenRoughness: 0.4, sheenColor: 0xd9776a, clearcoat: 0.35, clearcoatRoughness: 0.35,
+    }),
+    fascia: () => new THREE.MeshPhysicalMaterial({
+      ...common, color: 0xffffff, map: tenTex, bumpMap: tenBump, bumpScale: 1.6, roughness: 0.38, sheen: 0.9, sheenRoughness: 0.35, sheenColor: 0xf2f6ff, transparent: false,
+    }),
     skin: () => addSurfaceNoise(new THREE.MeshPhysicalMaterial({
       ...common, color: 0xd6a48a, roughness: 0.6, sheen: 0.5, sheenColor: 0xffd9c4,
     }), { scale: [14, 14, 14], bump: 0.006, colorVar: 0.05 }),

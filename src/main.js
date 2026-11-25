@@ -11,7 +11,7 @@ THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
-export const APP_VERSION = '0.2.0-preview';
+export const APP_VERSION = '0.3.0-preview';
 const $ = (s) => document.querySelector(s);
 
 // ---------- renderer / scene ----------
@@ -66,6 +66,7 @@ async function loadAnatomy() {
     const q = new Uint16Array(bin, m.pos, n * 3);
     const qn = new Int8Array(bin, m.nrm, n * 3);
     const ao = new Uint8Array(bin, m.ao, n);
+    const tint = m.tint !== undefined ? new Uint8Array(bin, m.tint, n) : null;
     const pos = new Float32Array(n * 3), nrm = new Float32Array(n * 3), col = new Float32Array(n * 4);
     for (let i = 0; i < n; i++) {
       for (let a = 0; a < 3; a++) {
@@ -75,7 +76,9 @@ async function loadAnatomy() {
       // fade the cut ends of long bones / muscles so the knee stays the focus
       const y = pos[i * 3 + 1];
       const fade = 1 - THREE.MathUtils.smoothstep(Math.abs(y - 0.8), 7.5, 11.5);
-      const o = (ao[i] / 255) * (0.15 + 0.85 * fade); col[i * 4] = col[i * 4 + 1] = col[i * 4 + 2] = o; col[i * 4 + 3] = THREE.MathUtils.smoothstep(fade, 0, 0.45);
+      const o = (ao[i] / 255) * (0.15 + 0.85 * fade);
+      if (tint) { const k = tint[i] / 255; col[i * 4] = o * (0.58 + 0.36 * k); col[i * 4 + 1] = o * (0.13 + 0.77 * k); col[i * 4 + 2] = o * (0.11 + 0.75 * k); }
+      else { col[i * 4] = col[i * 4 + 1] = col[i * 4 + 2] = o; } col[i * 4 + 3] = THREE.MathUtils.smoothstep(fade, 0, 0.45);
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
