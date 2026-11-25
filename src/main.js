@@ -111,7 +111,7 @@ function setSide(side) {
   const cubeLabel = (k) => (CFG.cubeLabels && CFG.cubeLabels[k]) || k[0].toUpperCase() + k.slice(1);
   if (fi && fo) { const L = side === 'left'; const a = L ? mx : px, b = L ? px : mx; fi.dataset.face = a; fi.firstElementChild.textContent = cubeLabel(a); fo.dataset.face = b; fo.firstElementChild.textContent = cubeLabel(b); }
   for (const k of ['front', 'back']) { const el = document.querySelector(`#cube [data-face=${k}] span`); if (el) el.textContent = cubeLabel(k); }
-  document.title = `${CFG.title} · ${side === 'left' ? 'Left' : 'Right'} ${CFG.part}`;
+  document.title = CFG.sides === false ? CFG.title : `${CFG.title} · ${side === 'left' ? 'Left' : 'Right'} ${CFG.part}`;
   if (state.selected && typeof select === 'function') select(state.selected);
   if (injuries && typeof renderInjuryList === 'function') renderInjuryList();
 }
