@@ -1,10 +1,14 @@
 # Leg Explainer (formerly Knee Injury Explainer)
 
-An interactive 3D model of the **right leg, from the hip to the toes**, that doctors and physical therapists can use to show
+An interactive 3D model of the **right or left leg, from the hip to the toes**, that doctors and physical therapists can use to show
 patients what is injured. The knee has the most detail; the hip and the ankle and foot now have their joints modelled too.
 **Educational demo, not for diagnosis.** It stores no patient names or health details.
 
 ## How to use it
+
+**Right leg / Left leg** (next to the title) switches sides. The left leg is the mirror image of the scanned right leg:
+views, labels, injuries, share links, saved images and cases all follow the side shown. A link or case made on the
+left leg opens on the left leg.
 
 **Explore mode**
 - Drag to rotate, pinch or scroll to zoom, two-finger drag (or right-drag) to pan.

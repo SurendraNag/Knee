@@ -6,6 +6,7 @@ export function snapshot({ state, camera, controls, injuries }) {
   return {
     v: 1,
     m: state.mode === 'injury' ? 1 : 0,
+    sd: state.side === 'left' ? 1 : undefined,
     p: state.peel, x: state.xray ? 1 : 0, s: r3(state.spread), ve: state.vessels ? 1 : 0, l: state.labels ? 1 : 0,
     c: [...camera.position.toArray(), ...controls.target.toArray()].map(r3),
     sel: state.mode === 'explore' ? state.selected || undefined : undefined,

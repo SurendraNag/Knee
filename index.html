@@ -11,7 +11,7 @@
   <canvas id="c"></canvas>
 
   <header class="topbar">
-    <div class="brand">Leg Explainer <span class="side">Right leg</span> <span id="version" class="ver"></span></div>
+    <div class="brand">Leg Explainer <span class="side" role="group" aria-label="Which leg"><button data-side="right" class="on" aria-pressed="true">Right leg</button><button data-side="left" aria-pressed="false">Left leg</button></span> <span id="version" class="ver"></span></div>
     <div class="disclaimer" role="note">Educational demo, not for diagnosis</div>
   </header>
 
@@ -98,12 +98,12 @@
   <div id="tags"></div>
   <div id="cube-wrap" title="Tap a face to turn the leg">
     <div id="cube">
-      <div class="face f-front" data-face="front">Front</div>
-      <div class="face f-back" data-face="back">Back</div>
-      <div class="face f-in" data-face="inside">Inside</div>
-      <div class="face f-out" data-face="outside">Outside</div>
-      <div class="face f-top" data-face="top">Top</div>
-      <div class="face f-bottom" data-face="bottom">Bottom</div>
+      <div class="face f-front" data-face="front"><span>Front</span></div>
+      <div class="face f-back" data-face="back"><span>Back</span></div>
+      <div class="face f-in" data-face="inside"><span>Inside</span></div>
+      <div class="face f-out" data-face="outside"><span>Outside</span></div>
+      <div class="face f-top" data-face="top"><span>Top</span></div>
+      <div class="face f-bottom" data-face="bottom"><span>Bottom</span></div>
     </div>
   </div>
   <div class="credit">Bones, muscles, vessels and skin: <a href="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html" target="_blank" rel="noopener">BodyParts3D</a>, © The Database Center for Life Science, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> (cropped and smoothed). Cartilage, ligaments, menisci, nerves and most tendons are modelled.</div>

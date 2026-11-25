@@ -72,6 +72,43 @@ const meshes = {}; // id -> mesh
 const state = { hidden: new Set(), vessels: true, peel: 2, xray: false, selected: null, isolate: false, labels: false, spread: 0, mode: 'explore', step: 1, injTarget: null, injType: null };
 let injuries = null;
 
+// ---------- side: right or left leg ----------
+// A left leg is the mirror image of a right one. The model stays a right leg in its own coordinates (so injuries,
+// views, regions and share codes work unchanged) and only the picture is mirrored: the projection gets a flip in x,
+// triangle winding is swapped to match, and horizontal drags are reversed so the leg still follows the finger.
+state.side = 'right';
+const MIRROR = new THREE.Matrix4().makeScale(-1, 1, 1);
+const _baseUPM = camera.updateProjectionMatrix.bind(camera);
+camera.updateProjectionMatrix = () => {
+  _baseUPM();
+  if (state.side === 'left') { camera.projectionMatrix.premultiply(MIRROR); camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert(); }
+};
+{
+  const st = renderer.state, base = st.setMaterial.bind(st);
+  st.setMaterial = (material, frontFaceCW) => base(material, state.side === 'left' ? !frontFaceCW : frontFaceCW);
+  const rot = controls._rotateLeft.bind(controls), pan = controls._panLeft.bind(controls);
+  controls._rotateLeft = (a) => rot(state.side === 'left' ? -a : a);
+  controls._panLeft = (d, m) => pan(state.side === 'left' ? -d : d, m);
+}
+const SIDE_TEXT = {}; // original structure text, so "right" can be swapped for "left"
+function sideWords(t) { return state.side === 'left' ? t.replace(/\bright\b/g, 'left').replace(/\bRight\b/g, 'Left') : t; }
+function setSide(side) {
+  side = side === 'left' ? 'left' : 'right';
+  state.side = side;
+  camera.updateProjectionMatrix();
+  for (const [id, s] of Object.entries(STRUCTURES)) {
+    const o = (SIDE_TEXT[id] ||= { name: s.name, what: s.what, short: s.short });
+    s.name = sideWords(o.name); s.what = sideWords(o.what); if (o.short) s.short = sideWords(o.short);
+  }
+  document.querySelectorAll('#picker option[value]').forEach((op) => { if (op.value && STRUCTURES[op.value]) op.textContent = STRUCTURES[op.value].name; });
+  document.querySelectorAll('[data-side]').forEach((b) => { const on = b.dataset.side === side; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+  const fi = document.querySelector('#cube .f-in'), fo = document.querySelector('#cube .f-out');
+  if (fi && fo) { const L = side === 'left'; fi.dataset.face = L ? 'outside' : 'inside'; fi.firstElementChild.textContent = L ? 'Outside' : 'Inside'; fo.dataset.face = L ? 'inside' : 'outside'; fo.firstElementChild.textContent = L ? 'Inside' : 'Outside'; }
+  document.title = `Leg Explainer · ${side === 'left' ? 'Left' : 'Right'} leg`;
+  if (state.selected && typeof select === 'function') select(state.selected);
+  if (injuries && typeof renderInjuryList === 'function') renderInjuryList();
+}
+
 // ---------- load anatomy ----------
 async function loadAnatomy() {
   const base = import.meta.env.BASE_URL;
@@ -462,6 +499,8 @@ function updateCube() {
   _q.copy(camera.quaternion).invert();
   _m4.makeRotationFromQuaternion(_q);
   const e = _m4.elements;
+  // left leg: the picture is mirrored, so show the mirrored rotation (S R S, still a rotation) with Inside and Outside swapped
+  if (state.side === 'left') { e[1] = -e[1]; e[2] = -e[2]; e[4] = -e[4]; e[8] = -e[8]; }
   // CSS has Y down: flip Y components
   $('#cube').style.transform = `translateZ(-32px) matrix3d(${e[0]},${-e[1]},${e[2]},0,${-e[4]},${e[5]},${-e[6]},0,${e[8]},${-e[9]},${e[10]},0,0,0,0,1)`;
 }
@@ -496,6 +535,7 @@ function wireUI() {
     else if (v === 'bottom') flyTo(controls.target.clone(), new THREE.Vector3(0.001, -1, 0.02), camera.position.distanceTo(controls.target));
     else setView(v);
   }));
+  document.querySelectorAll('[data-side]').forEach((b) => b.addEventListener('click', () => { setSide(b.dataset.side); toast(`${b.dataset.side === 'left' ? 'Left' : 'Right'} leg (mirror image of the scanned right leg)`); }));
   $('#version').textContent = `v${APP_VERSION}`;
   const reg = $('#region');
   reg.innerHTML = '<option value="">Go to…</option>' + Object.entries(REGIONS).map(([k, r]) => `<option value="${k}">${r.label}</option>`).join('');
@@ -513,6 +553,7 @@ function closeDialog() { $('#dlg').classList.add('hidden'); }
 const getSnap = () => snapshot({ state, camera, controls, injuries });
 function applySnap(sn) {
   anim = null;
+  setSide(sn.sd ? 'left' : 'right');
   setMode(sn.m === 1 ? 'injury' : 'explore');
   state.peel = sn.p ?? 2; $('#peel').value = String(state.peel);
   state.xray = !!sn.x;
@@ -588,7 +629,7 @@ async function saveImage() {
   }
   // footer: what it is, the disclaimer and the credit
   g.fillStyle = '#e9eef4'; g.font = `700 ${13 * k}px system-ui, sans-serif`; g.textBaseline = 'alphabetic';
-  g.fillText(`Leg Explainer v${APP_VERSION} · right leg · ${new Date().toLocaleDateString()}`, 16 * k, h + 22 * k);
+  g.fillText(`Leg Explainer v${APP_VERSION} · ${state.side} leg · ${new Date().toLocaleDateString()}`, 16 * k, h + 22 * k);
   g.fillStyle = '#ff8a8e'; const dis = 'Educational illustration, not for diagnosis.'; g.fillText(dis, out.width - 16 * k - g.measureText(dis).width, h + 22 * k);
   g.fillStyle = '#9aa7b6'; g.font = `${11 * k}px system-ui, sans-serif`;
   g.fillText('Anatomy: BodyParts3D, © The Database Center for Life Science, CC BY 4.0 (modified). Cartilage, ligaments, menisci, nerves and most tendons are modelled.', 16 * k, h + 42 * k);
@@ -705,6 +746,7 @@ function loop(now) {
       const inj = injuries.add(id, type, injuries.anchorFor(id, p), 0.37); renderInjuryList(); return inj; } };
   // test hooks for screenshots
   const qs = new URLSearchParams(location.search);
+  if (qs.get('side') === 'left') setSide('left');
   if (qs.get('vessels') === '0') setVessels(false);
   if (qs.has('hide')) { for (const k of qs.get('hide').split(',')) for (const id of Object.keys(meshes)) if (id === k || STRUCTURES[id].kind === k) state.hidden.add(id); applyVisibility(); }
   if (qs.has('peel')) { state.peel = Number(qs.get('peel')); $('#peel').value = qs.get('peel'); applyVisibility(); }

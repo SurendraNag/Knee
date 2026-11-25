@@ -21,7 +21,10 @@ select option, select optgroup { background: #151b23; }
 .topbar { position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: calc(10px + env(safe-area-inset-top)) 16px 10px; pointer-events: none; }
 .brand { font-weight: 650; font-size: 17px; letter-spacing: 0.2px; }
-.brand .side { font-weight: 500; color: var(--muted); font-size: 13px; margin-left: 6px; }
+.brand .side { display: inline-flex; margin-left: 8px; vertical-align: 2px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.brand .side button { border: 0; border-radius: 0; padding: 3px 9px; font-size: 12.5px; font-weight: 500; color: var(--muted); background: transparent; min-height: 0; }
+.brand .side button.on { background: var(--accent); color: #fff; }
+
 .brand .ver { font-weight: 500; color: var(--muted); font-size: 12px; margin-left: 4px; border: 1px solid var(--line); padding: 1px 6px; border-radius: 6px; }
 .disclaimer { pointer-events: auto; background: rgba(229, 72, 77, 0.14); border: 1px solid rgba(229, 72, 77, 0.55); color: #ffd7d8;
   padding: 6px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; white-space: nowrap; }
@@ -183,4 +186,6 @@ button.mini { min-height: 28px; padding: 3px 10px; font-size: 12px; }
   .phone-only { display: inline-flex; justify-content: center; }
   .toolbar:not(.open) .group.more { display: none; }
 }
-.toolbar, .injury, .info { z-index: 3; } /* panels stay above the 3D labels and injury tags */
+.toolbar, .injury, .info { z-index: 3; }
+#cube-wrap { z-index: 4; } /* panels stay above the 3D labels and injury tags */
+@media (max-width: 430px) { .brand .ver { display: none; } .brand { white-space: nowrap; } }
