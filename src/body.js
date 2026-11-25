@@ -10,6 +10,16 @@ THREE.Mesh.prototype.raycast = acceleratedRaycast;
 const $ = (s) => document.querySelector(s);
 $('#version').textContent = 'v' + APP_VERSION;
 const qs = new URLSearchParams(location.search);
+// Male (BodyParts3D as scanned) or female (the same parts fitted into a female body, with female organs)
+const SEX = qs.get('sex') === 'female' ? 'female' : 'male';
+const DIR = SEX === 'female' ? 'body-female/' : 'body/';
+document.documentElement.dataset.sex = SEX;
+document.title = SEX === 'female' ? 'Body Explorer · Female' : 'Body Explorer · Male';
+for (const b of document.querySelectorAll('[data-sex]')) {
+  const on = b.dataset.sex === SEX; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on));
+  b.addEventListener('click', () => { if (on) return; const u = new URL(location.href); if (b.dataset.sex === 'female') u.searchParams.set('sex', 'female'); else u.searchParams.delete('sex'); location.href = u.toString(); });
+}
+if (SEX === 'female') $('#credit-in').innerHTML = 'Model: <a href="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html" target="_blank" rel="noopener">BodyParts3D</a> © The Database Center for Life Science, with female organs from the <a href="https://humanatlas.io" target="_blank" rel="noopener">Human Reference Atlas</a> (HuBMAP) via <a href="https://github.com/MervinR07/open-anatomy-3d" target="_blank" rel="noopener">open-anatomy-3d</a>, all <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>. Female pelvis, organ placement and skin adapted by this project; height, build and face are the reference body\'s. <b>Female body: preview, waiting for doctor review.</b>';
 
 // ---------- Renderer ----------
 const canvas = $('#c');
@@ -99,6 +109,17 @@ function partColor(p) {
   return c;
 }
 
+// Female-only parts (Human Reference Atlas organs) and what they are
+const FEMALE_INFO = {
+  F_BREAST_L: 'Breast tissue: the milk-producing (mammary) glands and their ducts in fat, on top of the chest muscles. It grows at puberty and changes with pregnancy and age.',
+  F_BREAST_R: 'Breast tissue: the milk-producing (mammary) glands and their ducts in fat, on top of the chest muscles. It grows at puberty and changes with pregnancy and age.',
+  F_UTERUS: 'The uterus (womb): a hollow, muscular organ in the pelvis between the bladder and the rectum. Its lining builds up and is shed each month, and a pregnancy grows inside it.',
+  F_OVARY_L: 'An ovary: one of two almond-sized glands beside the uterus that hold the eggs and make the hormones oestrogen and progesterone.',
+  F_OVARY_R: 'An ovary: one of two almond-sized glands beside the uterus that hold the eggs and make the hormones oestrogen and progesterone.',
+  F_TUBES: 'The fallopian (uterine) tubes: two narrow tubes from the top of the uterus toward the ovaries. They catch the egg, and fertilisation usually happens here.',
+  F_VAGINA: 'The vagina: the muscular passage from the cervix (the neck of the uterus) to the outside of the body.',
+  F_URETHRA: 'The female urethra: a short tube, about 4 cm long, that carries urine from the bladder to its opening just in front of the vagina. Its shape here is simplified.',
+};
 const KNEE_PARTS = /femur|tibia|fibula|patella|quadriceps|vastus|rectus femoris|biceps femoris|semitendinosus|semimembranosus|gastrocnemius|popliteus|sartorius|gracilis|plantaris/i;
 const packs = {}; // id -> { info, mesh, state(Uint8Array RGBA), tex, parts, loaded, loading }
 const allParts = []; // { pack, i, p }
@@ -133,7 +154,7 @@ function makeMaterial(pack) {
 }
 
 async function fetchPack(info) {
-  const res = await fetch(`${import.meta.env.BASE_URL}body/${info.file}`);
+  const res = await fetch(`${import.meta.env.BASE_URL}${DIR}${info.file}`);
   let buf = await res.arrayBuffer();
   const u8 = new Uint8Array(buf, 0, 2);
   if (u8[0] === 0x1f && u8[1] === 0x8b) buf = await new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
@@ -150,7 +171,7 @@ async function loadPack(id) {
     g.setAttribute('normal', new THREE.BufferAttribute(new Int8Array(buf, L.nrm, info.nv * 3), 3, true));
     g.setAttribute('aPart', new THREE.BufferAttribute(new Uint16Array(buf, L.pid, info.nv), 1, false));
     const local = new Uint16Array(buf, L.idx, info.nt * 3), idx = new Uint32Array(info.nt * 3);
-    for (const p of info.parts) { const a = p.t0 * 3, b = a + p.tc * 3; for (let i = a; i < b; i++) idx[i] = local[i] + p.v0; }
+    for (const p of info.parts) for (const [v0, , t0, tc] of p.pieces || [[p.v0, p.vc, p.t0, p.tc]]) { const a = t0 * 3, b = a + tc * 3; for (let i = a; i < b; i++) idx[i] = local[i] + v0; }
     g.setIndex(new THREE.BufferAttribute(idx, 1));
     const size = new THREE.Vector3().fromArray(info.max).sub(new THREE.Vector3().fromArray(info.min));
     const mesh = new THREE.Mesh(g, makeMaterial(pk));
@@ -214,7 +235,9 @@ function select(packId, i, { fly = false } = {}) {
   if (packId == null) { ui.selected = null; ui.only = false; $('#act-only').setAttribute('aria-pressed', 'false'); $('#info').classList.add('hidden'); applyFocus(); return; }
   const p = packs[packId].info.parts[i];
   ui.selected = { pack: packId, i };
-  const [group, what] = SYSTEM_INFO[p.system] || ['Part', ''];
+  const [group, what0] = SYSTEM_INFO[p.system] || ['Part', ''];
+  const fem = FEMALE_INFO[p.id];
+  const what = fem ? fem + ' (Preview: waiting for a doctor to review.)' : what0;
   $('#info-group').textContent = group; $('#info-name').textContent = p.name; $('#info-what').textContent = what;
   $('#act-knee').hidden = !(KNEE_PARTS.test(p.name) && /right/i.test(p.name));
   $('#info').classList.remove('hidden');
@@ -305,7 +328,7 @@ function loop(now) {
 
 (async () => {
   const t0 = performance.now();
-  manifest = await (await fetch(`${import.meta.env.BASE_URL}body/manifest.json`)).json();
+  manifest = await (await fetch(`${import.meta.env.BASE_URL}${DIR}manifest.json`)).json();
   for (const info of manifest.packs) {
     packs[info.id] = { info, on: false }; partState(packs[info.id]);
     info.parts.forEach((p, i) => allParts.push({ pack: info.id, i, p, lname: p.name.toLowerCase() }));
@@ -317,7 +340,7 @@ function loop(now) {
   if (qs.has('region')) { goRegion(qs.get('region')); anim.dur = 1; }
   if (qs.has('find')) { const a = allParts.find((x) => x.lname === qs.get('find').toLowerCase()); if (a) { await setSystem(a.pack, true); select(a.pack, a.i, { fly: true }); anim.dur = 1; if (qs.has('only')) $('#act-only').click(); if (anim) anim.dur = 1; } }
   $('#loading').classList.add('done');
-  window.__body = { packs, select, setSystem, camera, controls, flyTo, goRegion };
+  window.__body = { SEX, packs, select, setSystem, camera, controls, flyTo, goRegion };
   window.__ready = { loadMs: Math.round(performance.now() - t0) };
   requestAnimationFrame(loop);
   // warm the muscles in the background so the first toggle is quick

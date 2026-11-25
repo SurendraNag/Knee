@@ -147,6 +147,17 @@ Open **Whole body** from the leg app (or `/body.html`). It shows the full BodyPa
 The body data is built by `scripts/build-body.mjs` from the npm package `@dagno/anatomy-model` 0.1.2
 (BodyParts3D 4.0 simplified for the web, CC BY 4.0) into `public/body/`.
 
+
+**Male / Female** (next to the title) switches the whole-body explorer between the male BodyParts3D body and a female body
+(**preview, waiting for doctor review**). The female body is made from the same detailed parts by `scripts/build-body-female.mjs`:
+- the pelvis is reshaped toward typical female proportions (wider lower pelvis and pubic arch, rounder inlet, broader sacrum),
+  with the hips, soft tissue and skin around it;
+- the male reproductive organs and male urethra are removed; the uterus, ovaries, fallopian tubes, vagina and breast
+  (mammary gland) tissue come from the Human Reference Atlas 3D reference organs (HuBMAP, CC BY 4.0, via open-anatomy-3d);
+  a short female urethra is modelled;
+- the skin is smoothed over the groin and raised over the breast tissue. Height, build, face and muscles stay those of the
+  reference body. (The ready-made female body in open-anatomy-3d was tried first, but its pelvis and hands are distorted.)
+
 ## On a clinic website (embedding) and patient links
 
 The **Share** dialog also gives:

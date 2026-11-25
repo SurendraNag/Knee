@@ -11,7 +11,7 @@
   <canvas id="c"></canvas>
 
   <header class="topbar">
-    <div class="brand">Body Explorer <span id="version" class="ver"></span></div>
+    <div class="brand">Body Explorer <span class="side" role="group" aria-label="Body"><button data-sex="male">Male</button><button data-sex="female">Female</button></span> <span id="version" class="ver"></span></div>
     <div class="disclaimer" role="note">Educational demo, not for diagnosis</div>
   </header>
 
@@ -34,7 +34,7 @@
       <input id="search" type="search" placeholder="Find a part, e.g. left femur" autocomplete="off" />
       <ul id="results" class="results" hidden></ul>
     </div>
-    <p class="credit-in">Model: <a href="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html" target="_blank" rel="noopener">BodyParts3D</a>, © The Database Center for Life Science, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>. Adult male reference; simplified for the web.</p>
+    <p class="credit-in" id="credit-in">Model: <a href="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html" target="_blank" rel="noopener">BodyParts3D</a>, © The Database Center for Life Science, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>. Adult male reference; simplified for the web.</p>
   </aside>
 
   <section id="info" class="info hidden" aria-live="polite">

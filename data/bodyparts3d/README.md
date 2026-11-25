@@ -34,3 +34,8 @@ L5, scan axes). `scripts/build-spine.mjs` rebuilds the discs as rings and adds t
 eyes, cranial nerves, brain arteries, head and upper neck muscles, the skin of the head and the outer ears, converted by
 `scripts/extract-region.mjs` (region `head`; cm, origin near the middle of the skull, scan axes). `scripts/build-head.mjs` smooths
 them and adds the modelled jaw joint discs.
+
+The female whole-body files (`public/body-female/`) are made by `scripts/build-body-female.mjs` from the same
+`@dagno/anatomy-model` package plus the female organs (uterus, ovaries, fallopian tubes, vagina, breast tissue) in
+`open-anatomy-3d` 0.1.0 (models/anatomy-female.glb; Human Reference Atlas 3D Reference Organs, HuBMAP, CC BY 4.0;
+package CC BY 4.0). `scripts/glb-read.mjs` reads its meshopt-compressed GLB files as data.
