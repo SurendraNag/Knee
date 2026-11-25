@@ -62,7 +62,7 @@ select option, select optgroup { background: #151b23; }
   .topbar { flex-direction: column; align-items: flex-start; gap: 6px; padding-left: 16px; padding-right: 16px; }
   .disclaimer { font-size: 12px; padding: 4px 9px; }
   .modes { top: calc(78px + env(safe-area-inset-top)); }
-  .toolbar { left: 16px; right: 16px; max-width: none; gap: 8px; padding: 8px; }
+  .toolbar { left: 16px; right: 16px; max-width: none; gap: 8px; padding: 8px; bottom: calc(40px + env(safe-area-inset-bottom)); }
   .views { width: 100%; }
   .views button { flex: 1; padding: 8px 4px; font-size: 14px; }
   .group.peel { flex: 1 1 100%; }

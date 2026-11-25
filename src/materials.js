@@ -109,6 +109,21 @@ export function makeMaterials() {
     fascia: () => new THREE.MeshPhysicalMaterial({
       ...common, color: 0xffffff, map: tenTex, bumpMap: tenBump, bumpScale: 1.6, roughness: 0.38, sheen: 0.9, sheenRoughness: 0.35, sheenColor: 0xf2f6ff, transparent: false,
     }),
+    artery: () => addSurfaceNoise(new THREE.MeshPhysicalMaterial({
+      ...common, color: 0xc4373a, roughness: 0.3, clearcoat: 0.7, clearcoatRoughness: 0.2, sheen: 0.4, sheenColor: 0xff9a8a,
+    }), { scale: [8, 8, 8], bump: 0.004, colorVar: 0.06 }),
+    vein: () => addSurfaceNoise(new THREE.MeshPhysicalMaterial({
+      ...common, color: 0x4a5fa8, roughness: 0.32, clearcoat: 0.6, clearcoatRoughness: 0.25, sheen: 0.4, sheenColor: 0xa9b8ff,
+    }), { scale: [8, 8, 8], bump: 0.004, colorVar: 0.06 }),
+    nerve: () => new THREE.MeshPhysicalMaterial({
+      ...common, color: 0xf3dc8a, map: tenTex, bumpMap: tenBump, bumpScale: 1.2, roughness: 0.45, sheen: 0.6, sheenColor: 0xfff3c4,
+    }),
+    capsule: () => new THREE.MeshPhysicalMaterial({
+      ...common, color: 0xffffff, map: ligTex, bumpMap: ligBump, bumpScale: 1.4, roughness: 0.5, sheen: 0.6, sheenRoughness: 0.4, sheenColor: 0xffffff, side: THREE.DoubleSide,
+    }),
+    labrum: () => addSurfaceNoise(new THREE.MeshPhysicalMaterial({
+      ...common, color: 0xc9d6de, roughness: 0.28, clearcoat: 0.8, clearcoatRoughness: 0.15, sheen: 0.5, sheenColor: 0xfff8ec,
+    }), { scale: [4, 4, 4], bump: 0.008, colorVar: 0.06 }),
     skin: () => addSurfaceNoise(new THREE.MeshPhysicalMaterial({
       ...common, color: 0xd6a48a, roughness: 0.6, sheen: 0.5, sheenColor: 0xffd9c4,
     }), { scale: [14, 14, 14], bump: 0.006, colorVar: 0.05 }),

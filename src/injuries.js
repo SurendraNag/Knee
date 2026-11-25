@@ -16,16 +16,20 @@ export const INJURY_TYPES = {
   ligament: [
     { type: T.G1, label: 'Grade I sprain', sub: 'Stretched', say: (s) => `The ${s} is stretched but not torn; it usually heals with rest and exercises.` },
     { type: T.G2, label: 'Grade II sprain', sub: 'Partial tear, frayed fibres', say: (s) => `The ${s} is partly torn: some of its fibres are frayed and broken, so it is looser and weaker.` },
-    { type: T.G3, label: 'Grade III sprain', sub: 'Complete tear', say: (s) => `The ${s} is torn all the way through, so its two ends have pulled apart and it no longer holds the knee steady.` },
+    { type: T.G3, label: 'Grade III sprain', sub: 'Complete tear', say: (s, i = {}) => `The ${s} is torn all the way through, so its two ends have pulled apart and it no longer holds the ${i.joint || 'knee'} steady.` },
   ],
   tendon: [
     { type: T.G2, label: 'Partial tear', sub: 'Frayed fibres', say: (s) => `The ${s} is partly torn: some fibres are frayed and broken.` },
-    { type: T.G3, label: 'Complete tear', sub: 'Torn through', say: (s) => `The ${s} is torn all the way through, so the knee cannot be straightened with force.` },
+    { type: T.G3, label: 'Complete tear', sub: 'Torn through', say: (s, i = {}) => `The ${s} is torn all the way through, so ${i.tearEffect || 'the knee cannot be straightened with force'}.` },
   ],
   meniscus: [
     { type: T.SPLIT, label: 'Split tear', sub: 'Radial split from the inner edge', say: (s) => `The ${s} has a split running in from its inner edge, like a cut across a rubber ring.` },
     { type: T.BUCKET, label: 'Bucket-handle tear', sub: 'Strip flipped into the joint', say: (s) => `A long strip of the ${s} has torn loose and flipped toward the middle of the knee like a bucket handle, which can lock the knee.` },
     { type: T.FLAP, label: 'Flap tear', sub: 'Loose flap lifted up', say: (s) => `A loose flap of the ${s} has peeled up and can catch in the joint.` },
+  ],
+  labrum: [
+    { type: T.SPLIT, label: 'Labral tear', sub: 'Split at the rim', say: (s) => `The ${s} is split where it joins the rim of the socket, so it no longer seals the joint and can catch, click or cause groin pain.` },
+    { type: T.FLAP, label: 'Flap tear', sub: 'Loose flap lifted up', say: (s) => `A flap of the ${s} has torn loose and can catch between the ball and the socket.` },
   ],
   bone: [
     { type: T.HAIRLINE, label: 'Hairline crack', sub: 'Thin crack, no shift', say: (s) => `A thin crack runs through the ${s}; the pieces have not moved apart.` },
@@ -37,7 +41,7 @@ export const INJURY_TYPES = {
 };
 export const injuryKind = (id) => {
   const k = STRUCTURES[id]?.kind;
-  return k === 'bone' || k === 'ligament' || k === 'tendon' || k === 'meniscus' ? k : null;
+  return k === 'bone' || k === 'ligament' || k === 'tendon' || k === 'meniscus' || k === 'labrum' ? k : null;
 };
 export const typeInfo = (kind, type) => INJURY_TYPES[kind].find((t) => t.type === type);
 
@@ -54,6 +58,7 @@ uniform int uInjN;
 uniform vec4 uInjA[${MAX}];
 uniform vec4 uInjB[${MAX}];
 uniform vec4 uInjC[${MAX}];
+uniform vec4 uFlap;
 varying vec3 vIP; varying float vIU; varying float vIV; varying float vIR; varying float vSide;
 `;
 
@@ -152,9 +157,11 @@ for (int i = 0; i < ${MAX}; i++) { if (i >= uInjN) break;
   if (ty == 12) { float env = 1.0 - smoothstep(0.9, 1.7, ad);
     float inner = step(0.5, aRad);
     injPos += (-aSide * 0.85 + vec3(0.0, 0.22, 0.0)) * env * inner; }
-  if (ty == 13) { if (du > 0.0 && du < 1.1 && aRad > 0.42) {
-      float lift = (1.0 - du / 1.1); float r = smoothstep(0.42, 1.0, aRad);
-      injPos += vec3(0.0, 0.85, 0.0) * lift * r + (-aSide) * 0.35 * lift * r; } }
+  if (ty == 13) { bool toward = uFlap.w > 0.5;
+    if (du > 0.0 && du < 1.1 && (toward || aRad > 0.42)) {
+      float lift = (1.0 - du / 1.1); float r = toward ? 1.0 : smoothstep(0.42, 1.0, aRad);
+      if (toward) injPos += normalize(uFlap.xyz - cen) * 0.6 * lift + normal * 0.08 * lift;
+      else injPos += vec3(0.0, 0.85, 0.0) * lift * r + (-aSide) * 0.35 * lift * r; } }
 }
 vIU = uv.x; vIV = uv.y; vIR = aRad;
 `;
@@ -243,7 +250,11 @@ function ringAt(geom, u) {
 // deterministic random
 function rng(seed) { let s = Math.floor(seed * 1e6) || 1; return () => ((s = (s * 16807) % 2147483647) / 2147483647); }
 
-const CARTILAGE_OF = { femur: 'femoral_cartilage', tibia: 'tibial_cartilage', patella: 'patellar_cartilage' };
+const CARTILAGE_OF = {
+  femur: ['femoral_cartilage', 'femoral_head_cartilage'], tibia: ['tibial_cartilage'], patella: ['patellar_cartilage'],
+  hip_bone: ['acetabular_cartilage'], talus: ['ankle_cartilage', 'foot_cartilage'],
+  calcaneus: ['foot_cartilage'], navicular: ['foot_cartilage'], cuboid: ['foot_cartilage'], cuneiforms: ['foot_cartilage'],
+};
 
 export class InjuryManager {
   constructor(scene, meshes) {
@@ -251,6 +262,7 @@ export class InjuryManager {
     this.extraGroup = new THREE.Group(); scene.add(this.extraGroup);
     this.fiberMat = new THREE.MeshStandardMaterial({ color: 0xd9b9ae, roughness: 0.6 });
     this.fragMat = new THREE.MeshStandardMaterial({ color: 0xd8ccb2, roughness: 0.85, flatShading: true });
+    const linkedCart = new Set();
     for (const [id, mesh] of Object.entries(meshes)) {
       const kind = injuryKind(id);
       if (!kind) continue;
@@ -259,12 +271,14 @@ export class InjuryManager {
         uInjA: { value: Array.from({ length: MAX }, () => new THREE.Vector4()) },
         uInjB: { value: Array.from({ length: MAX }, () => new THREE.Vector4()) },
         uInjC: { value: Array.from({ length: MAX }, () => new THREE.Vector4()) },
+        uFlap: { value: STRUCTURES[id].flapToward ? new THREE.Vector4(...STRUCTURES[id].flapToward, 1) : new THREE.Vector4() },
       };
       const family = kind === 'bone' ? 'bone' : 'sweep';
       if (family === 'sweep') addSweepAttributes(mesh.geometry);
       patchMaterial(mesh.material, uniforms, family);
       const linked = [mesh];
-      if (CARTILAGE_OF[id] && meshes[CARTILAGE_OF[id]]) { patchMaterial(meshes[CARTILAGE_OF[id]].material, uniforms, 'bone'); linked.push(meshes[CARTILAGE_OF[id]]); }
+      // a cartilage mesh shared by several bones (foot) follows the first bone that claims it
+      for (const c of CARTILAGE_OF[id] || []) if (meshes[c] && !linkedCart.has(c)) { linkedCart.add(c); patchMaterial(meshes[c].material, uniforms, 'bone'); linked.push(meshes[c]); }
       this.targets[id] = { kind, family, uniforms, linked };
     }
   }
@@ -301,7 +315,10 @@ export class InjuryManager {
       const r = ringAt(this.meshes[inj.id].geometry, inj.anchor.u);
       return r.center.clone().addScaledVector(r.side, -0.9).add(new THREE.Vector3(0, 0.35, 0));
     }
-    if (t.family === 'sweep' && inj.type === T.FLAP) return p.add(new THREE.Vector3(0, 0.45, 0));
+    if (t.family === 'sweep' && inj.type === T.FLAP) {
+      const to = STRUCTURES[inj.id].flapToward;
+      return to ? p.lerp(new THREE.Vector3(...to), 0.18) : p.add(new THREE.Vector3(0, 0.45, 0));
+    }
     if (inj.type === T.DISPLACED) return p;
     return p;
   }

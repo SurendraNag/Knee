@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-<title>Knee Injury Explainer</title>
+<title>Leg Explainer</title>
 <meta name="theme-color" content="#0b0f14" />
 </head>
 <body>
@@ -11,7 +11,7 @@
   <canvas id="c"></canvas>
 
   <header class="topbar">
-    <div class="brand">Knee Explainer <span class="side">Right knee</span> <span id="version" class="ver"></span></div>
+    <div class="brand">Leg Explainer <span class="side">Right leg</span> <span id="version" class="ver"></span></div>
     <div class="disclaimer" role="note">Educational demo, not for diagnosis</div>
   </header>
 
@@ -30,8 +30,12 @@
       <button id="reset" title="Reset view">Reset</button>
     </div>
     <div class="group">
+      <select id="region" aria-label="Go to a part of the leg"></select>
+    </div>
+    <div class="group">
       <button id="xray" aria-pressed="false" class="toggle">See through bone</button>
       <button id="labels" aria-pressed="false" class="toggle">Labels</button>
+      <button id="vessels" aria-pressed="true" class="toggle" title="Show blood vessels and nerves">Vessels and nerves</button>
     </div>
     <div class="group peel">
       <label for="peel">Layers</label>
@@ -65,7 +69,7 @@
 
   <section id="injury" class="info injury hidden" aria-live="polite">
     <div class="steps"><span data-step="1">1 Structure</span><span data-step="2">2 Injury</span><span data-step="3">3 Spot</span></div>
-    <div id="inj-step1"><p class="lead">Tap a ligament, meniscus, tendon or bone, or pick one:</p>
+    <div id="inj-step1"><p class="lead">Tap a ligament, tendon, meniscus, labrum or bone, or pick one:</p>
       <select id="inj-picker" aria-label="Pick a structure"></select></div>
     <div id="inj-step2" hidden><div class="eyebrow" id="inj-target-group"></div><h2 id="inj-target"></h2>
       <div id="inj-types" class="types"></div>
@@ -80,7 +84,7 @@
   <svg id="leaders"></svg>
   <div id="labels-layer"></div>
   <div id="tags"></div>
-  <div id="cube-wrap" title="Tap a face to turn the knee">
+  <div id="cube-wrap" title="Tap a face to turn the leg">
     <div id="cube">
       <div class="face f-front" data-face="front">Front</div>
       <div class="face f-back" data-face="back">Back</div>
@@ -90,7 +94,7 @@
       <div class="face f-bottom" data-face="bottom">Bottom</div>
     </div>
   </div>
-  <div class="credit">Bones and muscles: <a href="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html" target="_blank" rel="noopener">BodyParts3D</a>, © The Database Center for Life Science, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> (cropped and smoothed). Cartilage, ligaments, menisci and tendons are modelled.</div>
+  <div class="credit">Bones, muscles, vessels and skin: <a href="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html" target="_blank" rel="noopener">BodyParts3D</a>, © The Database Center for Life Science, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> (cropped and smoothed). Cartilage, ligaments, menisci, nerves and most tendons are modelled.</div>
   <div class="hint">Drag to rotate · pinch or scroll to zoom · tap a structure</div>
   <div id="fps" class="fps" hidden></div>
   <div id="loading"><div class="spinner"></div>Loading anatomy…</div>

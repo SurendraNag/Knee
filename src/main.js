@@ -29,8 +29,27 @@ scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 scene.environmentIntensity = 0.32;
 
 const camera = new THREE.PerspectiveCamera(30, 1, 0.5, 400);
-const HOME_TARGET = new THREE.Vector3(0, 0.8, 0);
-const HOME_DIST = 44;
+const HOME_TARGET = new THREE.Vector3(-1, -1, 1);
+const HOME_DIST = 250;
+const HOME_DIR = new THREE.Vector3(0.35, 0.1, 1);
+const FADE_Y0 = 55, FADE_Y1 = 60.5;
+function fadeY(y) { return 1 - THREE.MathUtils.smoothstep(y, FADE_Y0, FADE_Y1); }
+// Regions of the leg: where the camera looks, from which side, and how far away.
+const REGIONS = {
+  leg: { label: 'Whole leg', target: [-1, -1, 1], dir: [0.35, 0.1, 1], dist: 250 },
+  hip: { label: 'Hip', target: [-2, 44, 0.5], dir: [0.25, 0.1, 1], dist: 72 },
+  thigh: { label: 'Thigh', target: [-1.5, 22, 1.5], dir: [0.35, 0.1, 1], dist: 105 },
+  knee: { label: 'Knee', target: [0, 0.8, 0], dir: [0.35, 0.12, 1], dist: 44 },
+  calf: { label: 'Calf and shin', target: [-0.8, -20, 0], dir: [0.35, 0.1, 1], dist: 95 },
+  foot: { label: 'Ankle and foot', target: [-2.5, -39.5, 4], dir: [0.6, 0.45, 1], dist: 52 },
+};
+function goRegion(name) {
+  const r = REGIONS[name]; if (!r) return;
+  select(null);
+  flyTo(new THREE.Vector3(...r.target), new THREE.Vector3(...r.dir), r.dist, 800);
+  document.querySelectorAll('[data-view]').forEach((b) => b.classList.remove('on'));
+  const sel = $('#region'); if (sel) sel.value = name;
+}
 
 // soft studio lighting: warm key, cool fill, rim from behind, all moving with the camera
 const rig = new THREE.Group(); camera.add(rig); scene.add(camera);
@@ -42,23 +61,25 @@ scene.add(new THREE.HemisphereLight(0x9fb4cc, 0x2a2018, 0.2));
 
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true; controls.dampingFactor = 0.08;
-controls.minDistance = 6; controls.maxDistance = 80;
+controls.minDistance = 6; controls.maxDistance = 280;
 controls.screenSpacePanning = true;
 controls.zoomToCursor = true;
 controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
 
 // ---------- state ----------
 const meshes = {}; // id -> mesh
-const state = { peel: 2, xray: false, selected: null, isolate: false, labels: false, spread: 0, mode: 'explore', step: 1, injTarget: null, injType: null };
+const state = { hidden: new Set(), vessels: true, peel: 2, xray: false, selected: null, isolate: false, labels: false, spread: 0, mode: 'explore', step: 1, injTarget: null, injType: null };
 let injuries = null;
 
 // ---------- load anatomy ----------
 async function loadAnatomy() {
   const base = import.meta.env.BASE_URL;
-  const [manifest, bin] = await Promise.all([
+  const [manifest, data] = await Promise.all([
     fetch(`${base}anatomy/manifest.json`).then((r) => r.json()),
-    fetch(`${base}anatomy/anatomy.bin`).then((r) => r.arrayBuffer()),
+    fetch(`${base}anatomy/anatomy.dat`).then((r) => r.arrayBuffer()),
   ]);
+  let bin = data; const u8 = new Uint8Array(data, 0, 2);
+  if (u8[0] === 0x1f && u8[1] === 0x8b) bin = await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
   const mats = makeMaterials();
   for (const m of manifest.meshes) {
     const info = STRUCTURES[m.id];
@@ -74,9 +95,8 @@ async function loadAnatomy() {
         pos[i * 3 + a] = m.min[a] + (q[i * 3 + a] / 65535) * (m.max[a] - m.min[a]);
         nrm[i * 3 + a] = qn[i * 3 + a] / 127;
       }
-      // fade the cut ends of long bones / muscles so the knee stays the focus
-      const y = pos[i * 3 + 1];
-      const fade = 1 - THREE.MathUtils.smoothstep(Math.abs(y - 0.8), 7.5, 11.5);
+      // fade the cut at the top (waist), where the leg model ends
+      const fade = fadeY(pos[i * 3 + 1]);
       const o = (ao[i] / 255) * (0.15 + 0.85 * fade);
       if (tint) { const k = tint[i] / 255; col[i * 4] = o * (0.58 + 0.36 * k); col[i * 4 + 1] = o * (0.13 + 0.77 * k); col[i * 4 + 2] = o * (0.11 + 0.75 * k); }
       else { col[i * 4] = col[i * 4 + 1] = col[i * 4 + 2] = o; } col[i * 4 + 3] = THREE.MathUtils.smoothstep(fade, 0, 0.45);
@@ -101,13 +121,15 @@ async function loadAnatomy() {
 }
 
 // ---------- visibility: layers + see-through ----------
+const VESSEL_KINDS = new Set(['artery', 'vein', 'nerve']);
+function setVessels(on) { state.vessels = on; $('#vessels').setAttribute('aria-pressed', String(on)); applyVisibility(); }
 function applyVisibility() {
   for (const mesh of Object.values(meshes)) {
     const { layer } = mesh.userData.info;
     const id = mesh.userData.id;
     const focus = state.mode === 'explore' && state.selected;
     const spreadHide = state.spread > 0.02 && !SPREAD[id];
-    mesh.visible = layer >= state.peel && !spreadHide && !(state.isolate && focus && id !== focus);
+    mesh.visible = layer >= state.peel && !spreadHide && !state.hidden.has(id) && (state.vessels || !VESSEL_KINDS.has(mesh.userData.info.kind)) && !(state.isolate && focus && id !== focus);
     let faded = state.xray && (layer === 4 || layer === 3 || layer <= 1 || mesh.userData.info.kind === 'tendon');
     // glass focus: everything except the selected structure turns to glass
     if (focus && id !== focus && !state.isolate) faded = true;
@@ -117,7 +139,9 @@ function applyVisibility() {
       m.alphaHash = false; m.transparent = true; m.depthWrite = false;
       m.opacity = focus && id !== focus ? (layer <= 1 ? 0.07 : 0.14) : layer === 4 ? 0.16 : layer === 3 ? 0.2 : mesh.userData.info.kind === 'tendon' ? 0.22 : 0.12;
     } else {
-      m.alphaHash = true; m.transparent = false; m.depthWrite = true; m.opacity = 1;
+      const op = mesh.userData.info.opacity ?? 1;
+      if (op < 1) { m.alphaHash = false; m.transparent = true; m.depthWrite = false; m.opacity = op; }
+      else { m.alphaHash = true; m.transparent = false; m.depthWrite = true; m.opacity = 1; }
     }
     mesh.userData.faded = faded;
     m.needsUpdate = true;
@@ -161,15 +185,19 @@ function setView(name) {
   flyTo(state.selected ? focusCenter(state.selected) : controls.target.clone(), VIEWS[name], dist);
   document.querySelectorAll('[data-view]').forEach((b) => b.classList.toggle('on', b.dataset.view === name));
 }
-function resetView() {
-  flyTo(HOME_TARGET, new THREE.Vector3(0.35, 0.12, 1), HOME_DIST);
-  document.querySelectorAll('[data-view]').forEach((b) => b.classList.remove('on'));
-}
+function resetView() { goRegion('leg'); }
 
 function focusCenter(id) {
   const g = meshes[id].geometry; const s = g.boundingSphere.clone();
-  // long bones and muscles: focus on the part near the joint
-  if (s.radius > 5) { s.center.y = THREE.MathUtils.clamp(s.center.y, -2.5, 4); }
+  // long bones and muscles: focus on the end nearest to where the camera is looking
+  if (s.radius > 7) {
+    if (!g.boundingBox) g.computeBoundingBox();
+    const b = g.boundingBox; const ty = controls.target.y;
+    const margin = Math.min(6, (b.max.y - b.min.y) / 2);
+    const y = THREE.MathUtils.clamp(ty, b.min.y + margin, b.max.y - margin);
+    const res = g.boundsTree.closestPointToPoint(new THREE.Vector3(s.center.x, y, s.center.z));
+    s.center.set(s.center.x, y, s.center.z).lerp(res.point, 0.5);
+  }
   return s.center;
 }
 function focusRadius(id) {
@@ -269,8 +297,9 @@ function setMode(mode) {
   document.querySelectorAll('[data-mode]').forEach((b) => b.classList.toggle('on', b.dataset.mode === mode));
   document.body.classList.toggle('mode-injury', mode === 'injury');
   $('#injury').classList.toggle('hidden', mode !== 'injury');
-  if (mode === 'injury') { select(null); setStep(state.injTarget ? 2 : 1); }
-  else { setHighlight(null); frameFreeArea(); }
+  // vessels and nerves hide in injury mode so ligaments and bones are easy to reach (the button brings them back)
+  if (mode === 'injury') { select(null); setVessels(false); setStep(state.injTarget ? 2 : 1); }
+  else { setVessels(true); setHighlight(null); frameFreeArea(); }
 }
 function setStep(n) {
   state.step = n;
@@ -295,7 +324,7 @@ function chooseInjTarget(id) {
 }
 function injurySentence(inj) {
   const info = STRUCTURES[inj.id]; const t = typeInfo(injuryKind(inj.id), inj.type);
-  return { title: `${info.short.replace(/^./, (c) => c.toUpperCase())}: ${t.label.replace(/^(?!Grade)./, (c) => c.toLowerCase())}`, text: t.say(info.short) };
+  return { title: `${info.short.replace(/^./, (c) => c.toUpperCase())}: ${t.label.replace(/^(?!Grade)./, (c) => c.toLowerCase())}`, text: t.say(info.short, info) };
 }
 function renderInjuryList() {
   const list = injuries ? injuries.list : [];
@@ -380,12 +409,13 @@ function updateLabels() {
   const w = canvas.clientWidth, h = canvas.clientHeight, cx = w / 2;
   const top = $('.modes').getBoundingClientRect().bottom + 12, bottom = $('.toolbar').getBoundingClientRect().top - 12;
   const items = [];
+  const camDist = camera.position.distanceTo(controls.target);
   for (const el of layer.children) {
     const id = el.dataset.id, mesh = meshes[id];
     const show = mesh.visible && (!mesh.userData.faded || id === state.selected) && (!state.selected || state.isolate ? true : true);
     if (!show) { el.style.display = 'none'; continue; }
     _lp.copy(labelAnchors[id]).add(mesh.position);
-    if (fadeAt(_lp) < 0.6) { el.style.display = 'none'; continue; }
+    if (fadeAt(_lp) < 0.6 || _lp.distanceTo(controls.target) > camDist * 0.32) { el.style.display = 'none'; continue; }
     _ln.copy(_lp).project(camera);
     if (_ln.z > 1) { el.style.display = 'none'; continue; }
     const x = (_ln.x * 0.5 + 0.5) * w, y = (-_ln.y * 0.5 + 0.5) * h;
@@ -423,7 +453,7 @@ function updateCube() {
   $('#cube').style.transform = `translateZ(-32px) matrix3d(${e[0]},${-e[1]},${e[2]},0,${-e[4]},${e[5]},${-e[6]},0,${e[8]},${-e[9]},${e[10]},0,0,0,0,1)`;
 }
 
-const fadeAt = (p) => 1 - THREE.MathUtils.smoothstep(Math.abs(p.y - 0.8), 7.5, 11.5);
+const fadeAt = (p) => fadeY(p.y);
 
 // ---------- UI wiring ----------
 function buildPicker() {
@@ -444,6 +474,7 @@ function wireUI() {
   $('#reset').addEventListener('click', () => { select(null); resetView(); });
   $('#info-close').addEventListener('click', () => select(null));
   $('#isolate').addEventListener('click', () => toggleIsolate());
+  $('#vessels').addEventListener('click', () => setVessels(!state.vessels));
   $('#labels').addEventListener('click', () => { state.labels = !state.labels; $('#labels').setAttribute('aria-pressed', String(state.labels)); });
   $('#spread').addEventListener('input', (e) => { state.spread = Number(e.target.value); applySpread(); });
   document.querySelectorAll('#cube .face').forEach((f) => f.addEventListener('click', () => {
@@ -453,6 +484,9 @@ function wireUI() {
     else setView(v);
   }));
   $('#version').textContent = `v${APP_VERSION}`;
+  const reg = $('#region');
+  reg.innerHTML = '<option value="">Go to…</option>' + Object.entries(REGIONS).map(([k, r]) => `<option value="${k}">${r.label}</option>`).join('');
+  reg.addEventListener('change', () => goRegion(reg.value));
   buildPicker();
   wireInjuryUI();
 }
@@ -499,7 +533,7 @@ function loop(now) {
 (async function start() {
   wireUI();
   resize();
-  camera.position.copy(HOME_TARGET).add(new THREE.Vector3(0.35, 0.12, 1).normalize().multiplyScalar(HOME_DIST));
+  camera.position.copy(HOME_TARGET).add(HOME_DIR.clone().normalize().multiplyScalar(HOME_DIST));
   controls.target.copy(HOME_TARGET);
   const t0 = performance.now();
   await loadAnatomy();
@@ -507,7 +541,7 @@ function loop(now) {
   computeLabelAnchors(); buildLabels();
   applyVisibility();
   // test hooks
-  window.__knee = { meshes, injuries, state, setMode, chooseInjTarget, renderInjuryList, THREE, camera, controls, flyTo, VIEWS, setView,
+  window.__knee = { meshes, goRegion, REGIONS, setVessels, injuries, state, setMode, chooseInjTarget, renderInjuryList, THREE, camera, controls, flyTo, VIEWS, setView,
     look(i, dist = 9, dir) { const inj = injuries.list[i]; const p = injuries.tagPoint(inj); const n = dir ? new THREE.Vector3(...dir).normalize() : new THREE.Vector3().fromArray(inj.anchor.n);
       anim = null; controls.target.copy(p); camera.position.copy(p).addScaledVector(n, dist); controls.update(); },
     addAt(id, type, frac, side = 0) { // frac along a swept structure, or [x,y,z] near a bone
@@ -517,11 +551,14 @@ function loop(now) {
       const inj = injuries.add(id, type, injuries.anchorFor(id, p), 0.37); renderInjuryList(); return inj; } };
   // test hooks for screenshots
   const qs = new URLSearchParams(location.search);
+  if (qs.get('vessels') === '0') setVessels(false);
+  if (qs.has('hide')) { for (const k of qs.get('hide').split(',')) for (const id of Object.keys(meshes)) if (id === k || STRUCTURES[id].kind === k) state.hidden.add(id); applyVisibility(); }
   if (qs.has('peel')) { state.peel = Number(qs.get('peel')); $('#peel').value = qs.get('peel'); applyVisibility(); }
   if (qs.has('xray')) { state.xray = true; applyVisibility(); }
   if (qs.has('labels')) { state.labels = true; }
   if (qs.has('spread')) { state.spread = Number(qs.get('spread')); $('#spread').value = qs.get('spread'); applySpread(); }
-  if (qs.has('view')) { const v = VIEWS[qs.get('view')]; camera.position.copy(HOME_TARGET).add(v.clone().normalize().multiplyScalar(HOME_DIST)); }
+  if (qs.has('region')) { const r = REGIONS[qs.get('region')]; controls.target.set(...r.target); camera.position.copy(controls.target).add(new THREE.Vector3(...r.dir).normalize().multiplyScalar(r.dist)); $('#region').value = qs.get('region'); }
+  if (qs.has('view')) { const v = VIEWS[qs.get('view')]; const d = camera.position.distanceTo(controls.target); camera.position.copy(controls.target).add(v.clone().normalize().multiplyScalar(d)); }
   if (qs.has('cam')) { // test hook: cam=dx,dy,dz,dist[,tx,ty,tz]
     const [x, y, z, d, tx, ty, tz] = qs.get('cam').split(',').map(Number);
     if (tx !== undefined) controls.target.set(tx, ty, tz);

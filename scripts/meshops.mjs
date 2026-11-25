@@ -35,9 +35,10 @@ export function weld(positions, idx, eps = 1e-4) {
 export function translate(m, d) { for (let i = 0; i < m.positions.length; i += 3) { m.positions[i] += d[0]; m.positions[i + 1] += d[1]; m.positions[i + 2] += d[2]; } return m; }
 
 export function merge(list) {
-  const P = [], I = []; let base = 0;
-  for (const m of list) { P.push(...m.positions); for (const i of m.indices) I.push(i + base); base += m.positions.length / 3; }
-  return { positions: new Float32Array(P), indices: new Uint32Array(I) };
+  let nv = 0, ni = 0; for (const m of list) { nv += m.positions.length; ni += m.indices.length; }
+  const P = new Float32Array(nv), I = new Uint32Array(ni); let base = 0, po = 0, io = 0;
+  for (const m of list) { P.set(m.positions, po); po += m.positions.length; for (let k = 0; k < m.indices.length; k++) I[io++] = m.indices[k] + base; base += m.positions.length / 3; }
+  return { positions: P, indices: I };
 }
 
 const ekey = (a, b) => (a < b ? a * 4194304 + b : b * 4194304 + a);
