@@ -26,6 +26,14 @@ patients what is injured. The knee has the most detail; the hip and the ankle an
 3. Tap the exact spot. The injury snaps to the nearest surface and gets a numbered red tag with a one-sentence explanation.
    Use **Undo last**, the **×** next to an injury, or the red **Clear all** button.
 
+**Share, Save image and Cases** (on a phone, tap **More** to see them)
+- **Share** makes a link that reopens the same view and injuries. The whole view is packed into the part of the link after
+  `#`, which browsers never send to the server, so nothing is stored anywhere. Copy it or use the phone's share sheet.
+- **Save image** downloads a PNG of the current view with the labels, numbered injury tags, the list of injuries,
+  the disclaimer and the BodyParts3D credit.
+- **Cases** saves the current view under a name you choose (for example "ACL tear, side view"), in this browser only.
+  Open, share, rename or delete saved cases from the same list. Use names that describe the injury, not the patient.
+
 ## Whole-body explorer (`body.html`)
 
 Open **Whole body** from the leg app (or `/body.html`). It shows the full BodyParts3D adult male model, about 2,200 parts.
@@ -54,7 +62,8 @@ npm run build:anatomy  # regenerate public/anatomy/* from scripts/build-anatomy.
 
 `scripts/build-anatomy.mjs` builds everything into a gzip-compressed, quantised binary in `public/anatomy/`
 (centimetres, Y up, +Z front, +X inner/medial side of the right leg, knee joint line near y = 0, sole near y = -44,
-top of the hip bone near y = 59). About 100 structures, 500,000 vertices, 11 MB download.
+top of the hip bone near y = 59). About 100 structures, 500,000 vertices, about 8 MB download
+(positions, texture coordinates and triangle indices are delta-coded and byte-split before gzip).
 
 - **Bones, muscles, blood vessels, skin and the IT band** are scan-derived meshes from BodyParts3D 4.0
   (`data/bodyparts3d/`), converted to centimetres and smoothed (Loop subdivision). The tibia and everything below it
@@ -66,7 +75,8 @@ top of the hip bone near y = 59). About 100 structures, 500,000 vertices, 11 MB 
   malleoli) and the foot joints (wherever two foot bones meet).
 - **Ligaments, menisci, the hip labrum and capsule, the quadriceps, patellar and Achilles tendons, the plantar fascia and
   the nerves** are not in BodyParts3D as usable shapes, so they are swept along centre-lines placed on the scanned bones,
-  muscles and vessels. The hip capsule and the nerves are marked "simplified" in the app.
+  muscles and vessels. The three hip ligaments are
+  thickened bands lying on the capsule that thin out where they blend in. The hip capsule and the nerves are marked "simplified" in the app.
 
 The earlier fully hand-built knee is kept in `scripts/build-anatomy-procedural.mjs`. Every shape is pending
 review by a doctor.

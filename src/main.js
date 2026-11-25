@@ -12,6 +12,7 @@ THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 import { APP_VERSION } from './version.js';
+import { snapshot, injuryList, encode, decode, listCases, saveCase, deleteCase, renameCase } from './cases.js';
 export { APP_VERSION };
 const $ = (s) => document.querySelector(s);
 
@@ -81,11 +82,16 @@ async function loadAnatomy() {
   let bin = data; const u8 = new Uint8Array(data, 0, 2);
   if (u8[0] === 0x1f && u8[1] === 0x8b) bin = await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
   const mats = makeMaterials();
+  const v2 = manifest.version >= 2;
+  // byte-planar stream -> typed array (see the writer in scripts/build-anatomy.mjs)
+  const unplanar = (off, n, T) => { const w = T.BYTES_PER_ELEMENT, src = new Uint8Array(bin, off, n * w), out = new T(n), dst = new Uint8Array(out.buffer); for (let b = 0; b < w; b++) { const base = b * n; for (let i = 0; i < n; i++) dst[i * w + b] = src[base + i]; } return out; };
   for (const m of manifest.meshes) {
     const info = STRUCTURES[m.id];
     if (!info) continue;
     const n = m.count;
-    const q = new Uint16Array(bin, m.pos, n * 3);
+    let q;
+    if (v2) { q = unplanar(m.pos, n * 3, Uint16Array); for (let i = 3; i < q.length; i++) q[i] += q[i - 3]; }
+    else q = new Uint16Array(bin, m.pos, n * 3);
     const qn = new Int8Array(bin, m.nrm, n * 3);
     const ao = new Uint8Array(bin, m.ao, n);
     const tint = m.tint !== undefined ? new Uint8Array(bin, m.tint, n) : null;
@@ -105,8 +111,15 @@ async function loadAnatomy() {
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     g.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
     g.setAttribute('color', new THREE.BufferAttribute(col, 4));
-    if (m.uv !== undefined) g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(bin, m.uv, n * 2), 2));
-    const idx = m.idx16 ? new Uint16Array(bin, m.idx, m.icount) : new Uint32Array(bin, m.idx, m.icount);
+    if (m.uv !== undefined) {
+      let uv;
+      if (v2) { const uq = unplanar(m.uv, n * 2, Uint16Array); uv = new Float32Array(n * 2); for (let i = 0; i < n * 2; i++) { const a = i & 1; uv[i] = m.uvMin[a] + (uq[i] / 65535) * (m.uvMax[a] - m.uvMin[a]); } }
+      else uv = new Float32Array(bin, m.uv, n * 2);
+      g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+    }
+    let idx;
+    if (v2) { const zz = unplanar(m.idx, m.icount, Uint32Array); idx = m.idx16 ? new Uint16Array(m.icount) : new Uint32Array(m.icount); let p = 0; for (let k = 0; k < m.icount; k++) { const z = zz[k]; p += (z >>> 1) ^ -(z & 1); idx[k] = p; } }
+    else idx = m.idx16 ? new Uint16Array(bin, m.idx, m.icount) : new Uint32Array(bin, m.idx, m.icount);
     g.setIndex(new THREE.BufferAttribute(idx, 1));
     g.computeBoundingSphere();
     g.computeBoundsTree();
@@ -434,7 +447,7 @@ function updateLabels() {
       it.el.style.display = '';
       it.el.classList.toggle('sel', it.id === state.selected);
       const lw = it.el.offsetWidth;
-      const lx = side ? colX.true - lw : colX.false;
+      const lx = THREE.MathUtils.clamp(side ? colX.true - lw : colX.false, 4, Math.max(4, w - lw - 4));
       it.el.style.left = `${lx}px`; it.el.style.top = `${it.ly}px`;
       lines.push(`<line x1="${it.x}" y1="${it.y}" x2="${side ? lx + lw : lx}" y2="${it.ly}"/><circle cx="${it.x}" cy="${it.y}" r="2.2"/>`);
     }
@@ -489,7 +502,147 @@ function wireUI() {
   reg.addEventListener('change', () => goRegion(reg.value));
   buildPicker();
   wireInjuryUI();
+  wireShareUI();
 }
+
+// ---------- share codes, image download, named cases ----------
+const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function toast(msg, ms = 2600) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => { t.hidden = true; }, ms); }
+function openDialog(title, html) { $('#dlg-title').textContent = title; $('#dlg-body').innerHTML = html; $('#dlg').classList.remove('hidden'); }
+function closeDialog() { $('#dlg').classList.add('hidden'); }
+const getSnap = () => snapshot({ state, camera, controls, injuries });
+function applySnap(sn) {
+  anim = null;
+  setMode(sn.m === 1 ? 'injury' : 'explore');
+  state.peel = sn.p ?? 2; $('#peel').value = String(state.peel);
+  state.xray = !!sn.x;
+  state.spread = sn.s || 0; $('#spread').value = String(state.spread); applySpread();
+  state.labels = !!sn.l; $('#labels').setAttribute('aria-pressed', String(state.labels));
+  setVessels(!!sn.ve);
+  if (sn.c) { camera.position.set(sn.c[0], sn.c[1], sn.c[2]); controls.target.set(sn.c[3], sn.c[4], sn.c[5]); controls.update(); }
+  injuries.set(injuryList(sn).filter((j) => meshes[j.id] && injuries.targets[j.id])); renderInjuryList();
+  if (sn.m !== 1) select(sn.sel && meshes[sn.sel] ? sn.sel : null);
+  applyVisibility();
+}
+async function shareLink(snap = getSnap()) { return `${location.origin}${location.pathname}#c=${await encode(snap)}`; }
+async function openShare(snap) {
+  const url = await shareLink(snap);
+  let copied = false; try { await navigator.clipboard.writeText(url); copied = true; } catch { /* clipboard blocked: the box below still has it */ }
+  openDialog('Share this view', `<p class="note">${copied ? '<b>Link copied.</b> ' : ''}The link reopens this exact view and these injuries on any device.
+    Everything is inside the link itself; nothing is stored on a server and it holds no patient details.</p>
+    <div class="row"><input type="text" id="share-url" readonly value="${esc(url)}" aria-label="Share link"><button id="share-copy">Copy</button></div>
+    ${navigator.share ? '<button id="share-native">Send…</button>' : ''}`);
+  $('#share-url').addEventListener('focus', (e) => e.target.select());
+  $('#share-copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(url); toast('Link copied'); } catch { $('#share-url').select(); toast('Press Ctrl+C or Cmd+C to copy'); } });
+  $('#share-native')?.addEventListener('click', () => navigator.share({ title: 'Leg Explainer', url }).catch(() => {}));
+}
+function wrapText(g, text, maxW) {
+  const words = text.split(/\s+/), lines = []; let line = '';
+  for (const w of words) { const t = line ? line + ' ' + w : w; if (g.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t; }
+  if (line) lines.push(line); return lines;
+}
+async function saveImage() {
+  renderer.render(scene, camera);
+  const w = canvas.width, h = canvas.height, k = w / canvas.clientWidth;
+  const list = injuries ? injuries.list : [];
+  const side = list.length ? Math.round(340 * k) : 0, foot = Math.round(58 * k);
+  const out = document.createElement('canvas'); out.width = w + side; out.height = h + foot;
+  const g = out.getContext('2d');
+  g.fillStyle = '#0b0f14'; g.fillRect(0, 0, out.width, out.height);
+  g.drawImage(canvas, 0, 0);
+  // labels and leader lines, as on screen
+  if (state.labels) {
+    g.strokeStyle = 'rgba(233,238,244,0.7)'; g.fillStyle = 'rgba(233,238,244,0.9)'; g.lineWidth = 1 * k;
+    for (const l of $('#leaders').querySelectorAll('line')) { g.beginPath(); g.moveTo(+l.getAttribute('x1') * k, +l.getAttribute('y1') * k); g.lineTo(+l.getAttribute('x2') * k, +l.getAttribute('y2') * k); g.stroke(); }
+    g.font = `600 ${12 * k}px system-ui, sans-serif`; g.textBaseline = 'middle';
+    for (const el of $('#labels-layer').children) {
+      if (el.style.display === 'none') continue;
+      const x = el.offsetLeft * k, y = el.offsetTop * k, bw = el.offsetWidth * k, bh = el.offsetHeight * k;
+      g.fillStyle = 'rgba(11,15,20,0.78)'; g.beginPath(); g.roundRect(x, y, bw, bh, 6 * k); g.fill();
+      g.fillStyle = '#e9eef4'; g.fillText(el.textContent, x + 6 * k, y + bh / 2);
+    }
+  }
+  // numbered injury tags
+  const v = new THREE.Vector3();
+  list.forEach((inj, i) => {
+    v.copy(injuries.tagPoint(inj)).addScaledVector(new THREE.Vector3().fromArray(inj.anchor.n), 0.35).project(camera);
+    if (v.z > 1) return;
+    const x = (v.x * 0.5 + 0.5) * w, y = (-v.y * 0.5 + 0.5) * h, r = 11 * k;
+    g.fillStyle = '#e5484d'; g.strokeStyle = '#fff'; g.lineWidth = 2 * k; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); g.stroke();
+    g.fillStyle = '#fff'; g.font = `700 ${12 * k}px system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(i + 1), x, y + 0.5 * k); g.textAlign = 'left';
+  });
+  // injury list on the right
+  if (side) {
+    let y = 28 * k; const x0 = w + 18 * k, maxW = side - 34 * k;
+    g.fillStyle = '#9aa7b6'; g.font = `700 ${12 * k}px system-ui, sans-serif`; g.textBaseline = 'alphabetic'; g.fillText('INJURIES SHOWN', x0, y); y += 22 * k;
+    list.forEach((inj, i) => {
+      const s = injurySentence(inj);
+      g.fillStyle = '#e5484d'; g.beginPath(); g.arc(x0 + 9 * k, y - 4 * k, 9 * k, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#fff'; g.font = `700 ${11 * k}px system-ui, sans-serif`; g.textAlign = 'center'; g.fillText(String(i + 1), x0 + 9 * k, y); g.textAlign = 'left';
+      g.font = `700 ${13 * k}px system-ui, sans-serif`; g.fillStyle = '#e9eef4';
+      for (const ln of wrapText(g, s.title + '.', maxW - 26 * k)) { g.fillText(ln, x0 + 26 * k, y); y += 17 * k; }
+      g.font = `${13 * k}px system-ui, sans-serif`; g.fillStyle = '#c9d2dc';
+      for (const ln of wrapText(g, s.text, maxW - 26 * k)) { g.fillText(ln, x0 + 26 * k, y); y += 17 * k; }
+      y += 12 * k;
+    });
+  }
+  // footer: what it is, the disclaimer and the credit
+  g.fillStyle = '#e9eef4'; g.font = `700 ${13 * k}px system-ui, sans-serif`; g.textBaseline = 'alphabetic';
+  g.fillText(`Leg Explainer v${APP_VERSION} · right leg · ${new Date().toLocaleDateString()}`, 16 * k, h + 22 * k);
+  g.fillStyle = '#ff8a8e'; const dis = 'Educational illustration, not for diagnosis.'; g.fillText(dis, out.width - 16 * k - g.measureText(dis).width, h + 22 * k);
+  g.fillStyle = '#9aa7b6'; g.font = `${11 * k}px system-ui, sans-serif`;
+  g.fillText('Anatomy: BodyParts3D, © The Database Center for Life Science, CC BY 4.0 (modified). Cartilage, ligaments, menisci, nerves and most tendons are modelled.', 16 * k, h + 42 * k);
+  const blob = await new Promise((res) => out.toBlob(res, 'image/png'));
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `leg-explainer-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.png`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  toast('Image saved to your downloads');
+}
+function openCases() {
+  const list = listCases();
+  const n = injuries ? injuries.list.length : 0;
+  openDialog('Cases', `<p class="note">Save this view and its ${n} ${n === 1 ? 'injury' : 'injuries'} under a name. Cases stay on this device only.
+    Use a short label such as "ACL tear, side view", not a patient's name.</p>
+    <div class="row"><input type="text" id="case-name" maxlength="60" placeholder="Name this case" aria-label="Case name"><button id="case-save">Save</button></div>
+    ${list.length ? '' : '<p class="note">No saved cases yet.</p>'}
+    <ul class="cases">${list.map((c, i) => `<li data-i="${i}"><span class="nm">${esc(c.name)}<small>${esc(new Date(c.at).toLocaleString())} · ${(c.snap.i || []).length} injuries</small></span>
+      <button data-act="open">Open</button><button data-act="share">Share</button><button data-act="ren" aria-label="Rename ${esc(c.name)}">Rename</button><button data-act="del" aria-label="Delete ${esc(c.name)}">×</button></li>`).join('')}</ul>`);
+  const name = $('#case-name');
+  const doSave = () => {
+    const nm = name.value.trim(); if (!nm) { name.focus(); return; }
+    const exists = list.some((c) => c.name === nm);
+    if (exists && name.dataset.confirm !== nm) { name.dataset.confirm = nm; toast(`"${nm}" exists. Press Save again to replace it.`); return; }
+    if (saveCase(nm, getSnap())) { toast(`Saved "${nm}"`); openCases(); } else toast('This browser is blocking storage, so cases cannot be saved here. Use Share instead.', 4500);
+  };
+  $('#case-save').addEventListener('click', doSave);
+  name.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSave(); });
+  $('#dlg-body').querySelectorAll('.cases button').forEach((b) => b.addEventListener('click', () => {
+    const li = b.closest('li'), c = list[Number(li.dataset.i)];
+    if (b.dataset.act === 'open') { applySnap(c.snap); closeDialog(); toast(`Opened "${c.name}"`); }
+    if (b.dataset.act === 'share') openShare(c.snap);
+    if (b.dataset.act === 'del') { if (b.dataset.sure) { deleteCase(c.name); openCases(); } else { b.dataset.sure = '1'; b.textContent = 'Delete?'; b.classList.add('danger'); } }
+    if (b.dataset.act === 'ren') {
+      const nm = li.querySelector('.nm'); nm.innerHTML = `<input type="text" maxlength="60" value="${esc(c.name)}" aria-label="New name">`;
+      const inp = nm.querySelector('input'); inp.focus(); inp.select();
+      b.textContent = 'OK'; b.dataset.act = 'ren-ok';
+      const ok = () => { const to = inp.value.trim(); if (to && to !== c.name && !renameCase(c.name, to)) { toast('That name is taken'); return; } openCases(); };
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') ok(); });
+      b.addEventListener('click', ok, { once: true });
+    }
+  }));
+}
+function wireShareUI() {
+  $('#share').addEventListener('click', () => openShare());
+  $('#snap').addEventListener('click', () => saveImage());
+  $('#cases').addEventListener('click', () => openCases());
+  $('#dlg-close').addEventListener('click', closeDialog);
+  $('#more').addEventListener('click', () => { const tb = $('.toolbar'); const open = tb.classList.toggle('open'); $('#more').setAttribute('aria-expanded', String(open)); $('#more').textContent = open ? 'Less' : 'More'; frameFreeArea(); });
+}
+async function openFromHash() {
+  const m = location.hash.match(/^#c=([A-Za-z0-9_-]+)/); if (!m) return;
+  try { applySnap(await decode(m[1])); toast('Opened a shared view'); } catch { toast('This share link could not be opened. It may be cut short.', 4500); }
+}
+window.addEventListener('hashchange', openFromHash);
 
 function resize() {
   const w = canvas.clientWidth, h = canvas.clientHeight;
@@ -502,6 +655,7 @@ function resize() {
 // Shift the rendered image so the knee sits in the middle of the area not covered by panels.
 function frameFreeArea() {
   const w = canvas.clientWidth, h = canvas.clientHeight;
+  document.documentElement.style.setProperty('--tbh', `${$('.toolbar').offsetHeight}px`);
   const top = $('.modes').getBoundingClientRect().bottom + 8;
   const info = state.mode === 'injury' ? $('#injury') : $('#info');
   const phone = w <= 760;
@@ -541,7 +695,7 @@ function loop(now) {
   computeLabelAnchors(); buildLabels();
   applyVisibility();
   // test hooks
-  window.__knee = { meshes, goRegion, REGIONS, setVessels, injuries, state, setMode, chooseInjTarget, renderInjuryList, THREE, camera, controls, flyTo, VIEWS, setView,
+  window.__knee = { meshes, getSnap, applySnap, shareLink, saveImage, openCases, openShare, goRegion, REGIONS, setVessels, injuries, state, setMode, chooseInjTarget, renderInjuryList, THREE, camera, controls, flyTo, VIEWS, setView,
     look(i, dist = 9, dir) { const inj = injuries.list[i]; const p = injuries.tagPoint(inj); const n = dir ? new THREE.Vector3(...dir).normalize() : new THREE.Vector3().fromArray(inj.anchor.n);
       anim = null; controls.target.copy(p); camera.position.copy(p).addScaledVector(n, dist); controls.update(); },
     addAt(id, type, frac, side = 0) { // frac along a swept structure, or [x,y,z] near a bone
@@ -565,6 +719,7 @@ function loop(now) {
     camera.position.copy(controls.target).add(new THREE.Vector3(x, y, z).normalize().multiplyScalar(d || HOME_DIST));
   }
   if (qs.has('sel')) { select(qs.get('sel')); if (qs.has('iso')) toggleIsolate(true); if (qs.has('zoom')) { anim = null; const c = focusCenter(state.selected); const d = camera.position.clone().sub(controls.target).normalize(); camera.position.copy(c).add(d.multiplyScalar(focusRadius(state.selected) * 5 + 9)); controls.target.copy(c); } }
+  await openFromHash();
   $('#loading').classList.add('done');
   window.__ready = { loadMs: Math.round(performance.now() - t0) };
   requestAnimationFrame(loop);

@@ -183,6 +183,15 @@ function ellipseProfile(w, h, m, twist = 0, squareness = 0.35) {
   return out;
 }
 
+// Flat underside, domed top, edges thinning to a blade: a band lying on a surface (b = 0 is the underside).
+function lensProfile(w, h, m) {
+  const out = [];
+  for (let j = 0; j < m; j++) {
+    const a = (j / m) * Math.PI * 2, c = Math.cos(a), s = Math.sin(a);
+    out.push([c * w / 2, s > 0 ? h * Math.pow(s, 0.8) : 0.12 * h * s]);
+  }
+  return out;
+}
 const v3 = (a) => new THREE.Vector3(...a);
 function hintFrame(hintFn) {
   return (t, p, T) => {
@@ -216,7 +225,7 @@ function mergeSweeps(list) {
   let P = [], N = [], U = [], I = [], base = 0;
   list.forEach((g, k) => {
     P.push(...g.positions); N.push(...g.normals);
-    for (let i = 0; i < g.uvs.length; i += 2) U.push(g.uvs[i] + k * 1e-4, g.uvs[i + 1]);
+    for (let i = 0; i < g.uvs.length; i += 2) U.push(g.uvs[i] + k * 0.01, g.uvs[i + 1]);
     for (const ix of g.indices) I.push(ix + base);
     base += g.positions.length / 3;
   });
@@ -311,7 +320,7 @@ const menBVH = bvhOf([bones.femur, bones.tibia, bones.fibula, sweeps.medial_meni
   sweeps.patellar_tendon = sweep({
     points: [[-1.25, -0.45, 3.2], [-1.25, -1.8, 3.5], [-1.2, -3.3, 3.6], end],
     n: 56, m: 28, frame: hintFrame(() => [0, 0.05, 1]),
-    profile: (t) => ellipseProfile(mix(2.9, 2.1, t) * mix(0.75, 1, smoothstep(0, 0.12, t)) * mix(1, 0.8, smoothstep(0.85, 1, t)), mix(0.55, 0.42, t) * mix(0.6, 1, smoothstep(0, 0.12, t)), 28, 0, 0.45),
+    profile: (t) => ellipseProfile(mix(2.9, 2.1, t) * mix(0.75, 1, smoothstep(0, 0.12, t)) * mix(1, 0.8, smoothstep(0.85, 1, t)), mix(0.55, 0.42, t) * mix(0.5, 1, smoothstep(0, 0.15, t)) * mix(1, 0.6, smoothstep(0.85, 1, t)), 28, 0, 0.18),
   });
 }
 // ---------- Hip joint ----------
@@ -414,10 +423,12 @@ const capsule = (() => {
 })();
 sweeps.hip_capsule = { ...capsule.mesh, length: 4 };
 {
-  const band = (phi0, phi1, w0, w1, th, lift = 0.16) => {
-    const pts = []; for (let i = 0; i <= 10; i++) { const t = i / 10; pts.push(capsule.pointAt(mix(phi0, phi1, t) * D, mix(-0.04, 1.0, t), lift + th / 2).toArray()); }
-    return sweep({ points: pts, n: 44, m: 20, frame: hintFrame((t, p) => { const d = v3(p).sub(HIP_C); return d.addScaledVector(NECK, -d.dot(NECK)).toArray(); }),
-      profile: (t) => ellipseProfile(mix(w0, w1, t), th, 20, 0, 0.6) });
+  const band = (phi0, phi1, w0, w1, th, lift = 0.03) => {
+    // The ligaments are thickenings of the capsule, not separate straps: the centre line sits on the capsule,
+    // the cross-section is a flat-bottomed lens (thin edges), and the ends thin out where they blend into bone.
+    const pts = []; for (let i = 0; i <= 12; i++) { const t = i / 12; pts.push(capsule.pointAt(mix(phi0, phi1, t) * D, mix(0.0, 0.97, t), lift).toArray()); }
+    return sweep({ points: pts, n: 48, m: 24, frame: hintFrame((t, p) => { const d = v3(p).sub(HIP_C); return d.addScaledVector(NECK, -d.dot(NECK)).toArray(); }),
+      profile: (t) => { const env = smoothstep(0, 0.14, t) * (1 - smoothstep(0.86, 1, t)); return lensProfile(mix(w0, w1, t) * mix(0.85, 1, env), th * mix(0.3, 1, env), 24); } });
   };
   // inverted Y on the front: both limbs start together at the rim below the AIIS
   sweeps.iliofemoral_ligament = mergeSweeps([band(55, 25, 1.3, 1.8, 0.4), band(70, 112, 1.2, 1.5, 0.36)]);
@@ -548,7 +559,7 @@ const muscleBVH = bvhOf(Object.values(muscles));
 {
   sweeps.quad_tendon = sweep({
     points: [[-1.0, 2.4, 3.6], [-1.0, 3.5, 3.85], [-1.05, 4.7, 3.95], [-1.2, 6.0, 4.05], [-1.4, 7.4, 4.1]], n: 56, m: 28, frame: hintFrame(() => [0, 0, 1]),
-    profile: (t) => ellipseProfile(mix(4.2, 2.4, smoothstep(0, 0.9, t)) * mix(0.8, 1, smoothstep(0, 0.1, t)), mix(0.55, 0.45, t), 28, 0, 0.4),
+    profile: (t) => ellipseProfile(mix(4.2, 2.4, smoothstep(0, 0.9, t)) * mix(0.8, 1, smoothstep(0, 0.1, t)), mix(0.55, 0.45, t) * mix(0.6, 1, smoothstep(0, 0.12, t)) * mix(1, 0.45, smoothstep(0.8, 1, t)), 28, 0, 0.18),
   });
 }
 // IT band: the scanned iliotibial tract, from the hip (where TFL and gluteus maximus join it) down to Gerdy's tubercle.
@@ -706,8 +717,11 @@ for (const m of meshes) {
 }
 log('ao done');
 // ---------- Write quantized binary ----------
+// Format v2 (smaller after gzip): positions delta-coded, UVs quantised to 16 bits, indices zigzag delta-coded,
+// and each multi-byte stream stored byte-planar (all low bytes, then all high bytes). See loadAnatomy() in src/main.js.
 const chunks = []; let offset = 0;
-const manifest = { version: 1, units: 'cm', meshes: [] };
+const manifest = { version: 2, units: 'cm', meshes: [] };
+const planar = (arr) => { const w = arr.BYTES_PER_ELEMENT, src = new Uint8Array(arr.buffer, arr.byteOffset, arr.byteLength), n = arr.length, o = new Uint8Array(src.length); for (let i = 0; i < n; i++) for (let b = 0; b < w; b++) o[b * n + i] = src[i * w + b]; return o; };
 const push = (arr) => {
   const buf = Buffer.from(arr.buffer, arr.byteOffset, arr.byteLength);
   const pad = (4 - (buf.length % 4)) % 4;
@@ -720,15 +734,22 @@ for (const m of meshes) {
   for (let i = 0; i < n; i++) for (let a = 0; a < 3; a++) { min[a] = Math.min(min[a], P[i * 3 + a]); max[a] = Math.max(max[a], P[i * 3 + a]); }
   const q = new Uint16Array(P.length);
   for (let i = 0; i < n; i++) for (let a = 0; a < 3; a++) q[i * 3 + a] = Math.round(((P[i * 3 + a] - min[a]) / ((max[a] - min[a]) || 1)) * 65535);
+  const qd = new Uint16Array(q.length); for (let i = 0; i < q.length; i++) qd[i] = q[i] - (i >= 3 ? q[i - 3] : 0);
   const qn = new Int8Array(P.length);
   for (let i = 0; i < P.length; i++) qn[i] = Math.round(clamp(m.normals[i], -1, 1) * 127);
   const entry = { id: m.id, count: n, min, max };
-  entry.pos = push(q); entry.nrm = push(qn);
-  if (m.uvs) entry.uv = push(m.uvs);
+  entry.pos = push(planar(qd)); entry.nrm = push(qn);
+  if (m.uvs) {
+    const U = m.uvs, umin = [Infinity, Infinity], umax = [-Infinity, -Infinity];
+    for (let i = 0; i < U.length; i++) { umin[i % 2] = Math.min(umin[i % 2], U[i]); umax[i % 2] = Math.max(umax[i % 2], U[i]); }
+    const uq = new Uint16Array(U.length); for (let i = 0; i < U.length; i++) uq[i] = Math.round(((U[i] - umin[i % 2]) / ((umax[i % 2] - umin[i % 2]) || 1)) * 65535);
+    entry.uv = push(planar(uq)); entry.uvMin = umin; entry.uvMax = umax;
+  }
   entry.ao = push(m.ao);
   if (m.tint) entry.tint = push(m.tint);
-  const idx = n < 65536 ? new Uint16Array(m.indices) : m.indices;
-  entry.idx = push(idx); entry.idx16 = n < 65536; entry.icount = m.indices.length;
+  const I = m.indices, zz = new Uint32Array(I.length); let prev = 0;
+  for (let k = 0; k < I.length; k++) { const d = I[k] - prev; prev = I[k]; zz[k] = ((d << 1) ^ (d >> 31)) >>> 0; }
+  entry.idx = push(planar(zz)); entry.idx16 = n < 65536; entry.icount = I.length;
   manifest.meshes.push(entry);
 }
 const raw = Buffer.concat(chunks);

@@ -32,7 +32,7 @@
     <div class="group">
       <select id="region" aria-label="Go to a part of the leg"></select>
     </div>
-    <div class="group">
+    <div class="group more">
       <button id="xray" aria-pressed="false" class="toggle">See through bone</button>
       <button id="labels" aria-pressed="false" class="toggle">Labels</button>
       <button id="vessels" aria-pressed="true" class="toggle" title="Show blood vessels and nerves">Vessels and nerves</button>
@@ -42,12 +42,18 @@
       <input id="peel" type="range" min="0" max="4" step="1" value="2" />
       <span id="peel-label" class="peel-label"></span>
     </div>
-    <div class="group spread">
+    <div class="group spread more">
       <label for="spread">Spread apart</label>
       <input id="spread" type="range" min="0" max="1" step="0.01" value="0" />
     </div>
-    <div class="group">
+    <div class="group more">
       <select id="picker" aria-label="Find a structure"></select>
+    </div>
+    <div class="group">
+      <button id="share" title="Copy a link that reopens this exact view and these injuries">Share</button>
+      <button id="snap" title="Download a picture of this view">Save image</button>
+      <button id="cases" title="Save this view and its injuries under a name on this device">Cases</button>
+      <button id="more" class="phone-only" aria-expanded="false">More</button>
     </div>
   </div>
 
@@ -81,6 +87,12 @@
       <div class="actions"><button id="inj-undo">Undo last</button><button id="inj-clear" class="danger">Clear all</button></div>
     </div>
   </section>
+  <section id="dlg" class="info dlg hidden" role="dialog" aria-modal="false" aria-labelledby="dlg-title">
+    <button id="dlg-close" class="close" aria-label="Close">×</button>
+    <h2 id="dlg-title"></h2>
+    <div id="dlg-body"></div>
+  </section>
+  <div id="toast" class="toast" role="status" hidden></div>
   <svg id="leaders"></svg>
   <div id="labels-layer"></div>
   <div id="tags"></div>

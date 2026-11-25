@@ -69,8 +69,9 @@ select option, select optgroup { background: #151b23; }
   .peel input { flex: 1; }
   .peel-label { display: none; }
   #picker { max-width: none; flex: 1; }
-  .group:has(#picker) { flex: 1; }
-  .info { left: 16px; right: 16px; width: auto; top: auto; bottom: calc(196px + env(safe-area-inset-bottom)); max-height: 30%; padding: 12px 14px; }
+  .group:has(#picker) { flex: 1 1 100%; min-width: 0; }
+  #picker { min-width: 0; width: 100%; }
+  .info { left: 16px; right: 16px; width: auto; top: auto; bottom: calc(var(--tbh, 300px) + 48px + env(safe-area-inset-bottom)); max-height: 30%; padding: 12px 14px; }
   .info h3 { margin-top: 8px; }
   .info .actions { margin-top: 10px; }
   .info .actions button { min-height: 36px; padding: 6px 10px; }
@@ -161,3 +162,25 @@ button.mini { min-height: 28px; padding: 3px 10px; font-size: 12px; }
 }
 @media (max-width: 1500px) { .body-app .hint { display: none; } }
 [hidden] { display: none !important; }
+
+/* share / cases dialog */
+.dlg { z-index: 30; background: rgba(21,27,35,0.98); box-shadow: 0 12px 40px rgba(0,0,0,.55); }
+.dlg .row { display: flex; gap: 8px; margin: 10px 0; }
+.dlg input[type=text] { flex: 1; min-width: 0; background: rgba(255,255,255,.06); color: inherit; border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; font: inherit; }
+.dlg .note { font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+.dlg .cases { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-direction: column; gap: 6px; }
+.dlg .cases li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; }
+.dlg .cases .nm { flex: 1 1 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dlg .cases small { display: block; color: var(--muted); font-size: 11.5px; }
+.dlg .cases button { padding: 6px 10px; font-size: 13px; }
+.toast { position: absolute; left: 50%; top: calc(70px + env(safe-area-inset-top)); transform: translateX(-50%); z-index: 40; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 12px; padding: 9px 14px; font-size: 14px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); max-width: calc(100% - 32px); }
+@media (max-width: 760px) { .dlg { left: 16px; right: 16px; width: auto; top: auto; bottom: calc(40px + env(safe-area-inset-bottom)); max-height: 70%; }
+  .group:has(#share) { flex: 1 1 100%; } .group:has(#share) button { flex: 1; padding: 8px 4px; white-space: nowrap; font-size: 14px; } }
+
+.phone-only { display: none; }
+@media (max-width: 760px) {
+  .phone-only { display: inline-flex; justify-content: center; }
+  .toolbar:not(.open) .group.more { display: none; }
+}
+.toolbar, .injury, .info { z-index: 3; } /* panels stay above the 3D labels and injury tags */
