@@ -15,6 +15,11 @@ import { APP_VERSION } from './version.js';
 import { snapshot, injuryList, encode, decode, listCases, saveCase, deleteCase, renameCase } from './cases.js';
 export { APP_VERSION };
 const $ = (s) => document.querySelector(s);
+// ?patient=1: view-only page for patients (no editing of injuries); ?embed=1: inside a doctor's website (iframe)
+const QS = new URLSearchParams(location.search);
+const PATIENT = QS.get('patient') === '1', EMBED = QS.get('embed') === '1' || window.self !== window.top;
+document.documentElement.classList.toggle('patient', PATIENT);
+document.documentElement.classList.toggle('embed', EMBED);
 
 // ---------- renderer / scene ----------
 const canvas = $('#c');
@@ -40,6 +45,7 @@ function fadeY(y) { return FADE_DIR > 0 ? 1 - THREE.MathUtils.smoothstep(y, FADE
 const REGIONS = CFG.regions;
 function goRegion(name) {
   const r = REGIONS[name]; if (!r) return;
+  zoomStack.length = 0;
   select(null);
   flyTo(new THREE.Vector3(...r.target), new THREE.Vector3(...r.dir), r.dist, 800);
   document.querySelectorAll('[data-view]').forEach((b) => b.classList.remove('on'));
@@ -175,7 +181,7 @@ function applyVisibility() {
   for (const mesh of Object.values(meshes)) {
     const { layer } = mesh.userData.info;
     const id = mesh.userData.id;
-    const focus = state.mode === 'explore' && state.selected;
+    const focus = state.mode === 'explore' && state.selected && state.glass !== false;
     const spreadHide = state.spread > 0.02 && !SPREAD[id];
     mesh.visible = layer >= state.peel && !spreadHide && !state.hidden.has(id) && (state.vessels || !VESSEL_KINDS.has(mesh.userData.info.kind)) && !(state.isolate && focus && id !== focus);
     let faded = state.xray && (layer === 4 || layer === 3 || layer <= 1 || mesh.userData.info.kind === 'tendon');
@@ -270,9 +276,9 @@ function ensureVisible(id) {
   if (info.layer < state.peel) { state.peel = info.layer; $('#peel').value = String(state.peel); }
   applyVisibility();
 }
-function select(id) {
+function select(id, { glass = true } = {}) {
   setHighlight(id);
-  state.selected = id;
+  state.selected = id; state.glass = glass;
   const panel = $('#info');
   if (!id) { panel.classList.add('hidden'); $('#picker').value = ''; state.isolate = false; applyVisibility(); frameFreeArea(); return; }
   const info = STRUCTURES[id];
@@ -302,15 +308,56 @@ canvas.addEventListener('pointerup', (e) => {
   const r = canvas.getBoundingClientRect();
   const ndc = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
   ray.setFromCamera(ndc, camera);
-  if (state.mode === 'injury') return injuryTap();
-  // in glass focus everything else is faded, so allow picking any visible structure
-  const pickable = Object.values(meshes).filter((m) => m.visible && (!m.userData.faded || (state.selected && !state.xray)));
-  const hits = ray.intersectObjects(pickable, false).filter((h) => fadeAt(h.point) > 0.5);
-  const id = hits.length ? hits[0].object.userData.id : null;
+  // double-click / double-tap: zoom in to the body part, then closer to the spot (not while placing an injury)
   const now = performance.now();
-  if (id && id === lastTap.id && now - lastTap.t < 400) { select(id); toggleIsolate(true); lastTap = { id: null, t: 0 }; return; }
-  lastTap = { id, t: now };
-  select(id);
+  const dbl = lastTap.t && now - lastTap.t < 400 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 30;
+  lastTap = dbl ? { t: 0 } : { t: now, x: e.clientX, y: e.clientY };
+  clearTimeout(pendingTap);
+  if (dbl && !(state.mode === 'injury' && state.step === 3 && !PATIENT)) return zoomToTap();
+  if (state.mode === 'injury') return PATIENT ? undefined : injuryTap();
+  // a single tap selects, but wait a moment in case it is the first half of a double-tap
+  const hit = pickHit(), id = hit ? hit.object.userData.id : null;
+  pendingTap = setTimeout(() => select(id), 260);
+});
+let pendingTap = 0;
+// in glass focus everything else is faded, so allow picking any visible structure
+function pickHit() {
+  const pickable = Object.values(meshes).filter((m) => m.visible && (!m.userData.faded || (state.selected && !state.xray)));
+  return ray.intersectObjects(pickable, false).filter((h) => fadeAt(h.point) > 0.5)[0] || null;
+}
+
+// ---------- double-tap zoom levels ----------
+// Each double-tap saves the current view and flies in: first to the body part, then closer to the tapped spot.
+// Zooming out (scroll, pinch or the zoom buttons) past the level steps back one level; the last step returns
+// to the view from before the first double-tap. Double-tapping empty space goes straight back.
+const zoomStack = []; let zoomLevelDist = 0, zoomQuietUntil = 0, zoomHintShown = false;
+function zoomToTap() {
+  const hit = pickHit();
+  if (!hit) { if (zoomStack.length) zoomHome(); return; }
+  const p = hit.point.clone(), id = hit.object.userData.id;
+  const dir = camera.position.clone().sub(controls.target).normalize();
+  const cur = camera.position.distanceTo(controls.target);
+  zoomStack.push({ pos: camera.position.clone(), target: controls.target.clone(), dist: zoomLevelDist, selected: state.selected });
+  let dist;
+  if (zoomStack.length === 1) {
+    dist = Math.min(cur * 0.7, focusRadius(id) * 4 + (LIMB === 'hand' ? 5 : 9));
+    if (state.mode === 'explore') select(id, { glass: false }); // show what it is, keep its surroundings solid
+  } else dist = Math.max(controls.minDistance + 0.5, cur * 0.5);
+  zoomLevelDist = dist;
+  flyTo(p, dir, dist, 700);
+  if (!zoomHintShown) { zoomHintShown = true; toast('Double-tap a spot to look closer. Zoom out to go back.', 3200); }
+}
+function zoomBack() {
+  const v = zoomStack.pop(); if (!v) return;
+  zoomLevelDist = v.dist;
+  flyTo(v.target, v.pos.clone().sub(v.target), v.pos.distanceTo(v.target), 650);
+  if (!zoomStack.length && state.mode === 'explore') select(null); // back to the normal view
+}
+function zoomHome() { const first = zoomStack[0]; zoomStack.length = 0; if (first) { zoomStack.push(first); zoomBack(); } }
+controls.addEventListener('change', () => {
+  if (anim) { zoomQuietUntil = performance.now() + 450; return; }
+  if (!zoomStack.length || performance.now() < zoomQuietUntil) return;
+  if (camera.position.distanceTo(controls.target) > zoomLevelDist * 1.45) zoomBack();
 });
 function injuryTap() {
   if (state.step === 3) {
@@ -409,9 +456,9 @@ function wireInjuryUI() {
   $('#inj-clear').addEventListener('click', () => { injuries.clear(); renderInjuryList(); });
 }
 
-let lastTap = { id: null, t: 0 };
+let lastTap = { t: 0 };
 function toggleIsolate(on) {
-  state.isolate = on ?? !state.isolate; $('#isolate').setAttribute('aria-pressed', String(state.isolate)); applyVisibility();
+  state.isolate = on ?? !state.isolate; state.glass = true; $('#isolate').setAttribute('aria-pressed', String(state.isolate)); applyVisibility();
   if (state.isolate) zoomStructure(0);
 }
 
@@ -523,6 +570,11 @@ function wireUI() {
     else setView(v);
   }));
   document.querySelectorAll('[data-side]').forEach((b) => b.addEventListener('click', () => { setSide(b.dataset.side); toast(`${b.dataset.side === 'left' ? 'Left' : 'Right'} ${CFG.part} (mirror image of the scanned right ${CFG.part})`); }));
+  if (EMBED) { // inside a website: offer the full page in a new tab (keeps the current view and injuries)
+    const a = document.createElement('a'); a.className = 'btnlink embed-only'; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Open full screen';
+    a.addEventListener('click', async () => { const u = new URL(await shareLink()); u.searchParams.delete('embed'); a.href = u.toString(); });
+    a.href = location.href; $('.modes').appendChild(a);
+  }
   $('#version').textContent = `v${APP_VERSION}`;
   const reg = $('#region');
   reg.innerHTML = '<option value="">Go to…</option>' + Object.entries(REGIONS).map(([k, r]) => `<option value="${k}">${r.label}</option>`).join('');
@@ -552,14 +604,26 @@ function applySnap(sn) {
   if (sn.m !== 1) select(sn.sel && meshes[sn.sel] ? sn.sel : null);
   applyVisibility();
 }
-async function shareLink(snap = getSnap()) { return `${location.origin}${location.pathname}#c=${await encode(snap)}`; }
+// add ?name=1 to a link, before its #hash
+function withParam(url, name) { const u = new URL(url); u.searchParams.set(name, '1'); return u.toString(); }
+function iframeCode(src) { return `<iframe src="${src}" title="${CFG.title}" width="100%" height="640" style="border:0;border-radius:12px;max-width:1100px" allow="fullscreen; clipboard-write; web-share" loading="lazy"></iframe>`; }
+async function shareLink(snap = getSnap()) { return `${location.origin}${location.pathname}${PATIENT ? '?patient=1' : ''}#c=${await encode(snap)}`; }
 async function openShare(snap) {
   const url = await shareLink(snap);
   let copied = false; try { await navigator.clipboard.writeText(url); copied = true; } catch { /* clipboard blocked: the box below still has it */ }
   openDialog('Share this view', `<p class="note">${copied ? '<b>Link copied.</b> ' : ''}The link reopens this exact view and these injuries on any device.
     Everything is inside the link itself; nothing is stored on a server and it holds no patient details.</p>
     <div class="row"><input type="text" id="share-url" readonly value="${esc(url)}" aria-label="Share link"><button id="share-copy">Copy</button></div>
-    ${navigator.share ? '<button id="share-native">Send…</button>' : ''}`);
+    ${navigator.share ? '<button id="share-native">Send…</button>' : ''}
+    <h3>For a patient</h3>
+    <p class="note">The same view, but view-only: the patient can turn, zoom and tap to read, and cannot change the injuries.</p>
+    <div class="row"><input type="text" id="share-patient" readonly value="${esc(withParam(url, 'patient'))}" aria-label="Patient link"><button data-copy="share-patient">Copy</button></div>
+    <h3>Put it on a website</h3>
+    <p class="note">Paste this code into a page of the clinic website. Use the second one for patients (view-only).</p>
+    <div class="row"><input type="text" id="share-embed" readonly value="${esc(iframeCode(withParam(url, 'embed')))}" aria-label="Embed code"><button data-copy="share-embed">Copy</button></div>
+    <div class="row"><input type="text" id="share-embed-p" readonly value="${esc(iframeCode(withParam(withParam(url, 'embed'), 'patient')))}" aria-label="Embed code for patients"><button data-copy="share-embed-p">Copy</button></div>`);
+  $('#dlg-body').querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', async () => { const inp = $('#' + b.dataset.copy); try { await navigator.clipboard.writeText(inp.value); toast('Copied'); } catch { inp.select(); toast('Press Ctrl+C or Cmd+C to copy'); } }));
+  $('#dlg-body').querySelectorAll('input').forEach((i) => i.addEventListener('focus', (e) => e.target.select()));
   $('#share-url').addEventListener('focus', (e) => e.target.select());
   $('#share-copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(url); toast('Link copied'); } catch { $('#share-url').select(); toast('Press Ctrl+C or Cmd+C to copy'); } });
   $('#share-native')?.addEventListener('click', () => navigator.share({ title: CFG.title, url }).catch(() => {}));

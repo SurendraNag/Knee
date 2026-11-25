@@ -189,3 +189,13 @@ button.mini { min-height: 28px; padding: 3px 10px; font-size: 12px; }
 .toolbar, .injury, .info { z-index: 3; }
 #cube-wrap { z-index: 4; } /* panels stay above the 3D labels and injury tags */
 @media (max-width: 430px) { .brand .ver { display: none; } .brand { white-space: nowrap; } }
+
+/* patient view (?patient=1): look and read only, no editing of injuries */
+.patient [data-mode], .patient #inj-step1, .patient #inj-step2, .patient #inj-step3, .patient .steps,
+.patient #inj-list .rm, .patient #inj-listwrap .actions, .patient #cases, .patient .group.spread, .patient .note.preview { display: none !important; }
+.patient #injury .lead { display: none; }
+/* inside a website (iframe) */
+.embed .btnlink[href*="body.html"] { display: none; }
+.embed-only { display: none; }
+.embed .embed-only { display: inline-flex; }
+.dlg h3 { margin: 14px 0 2px; font-size: 13px; }

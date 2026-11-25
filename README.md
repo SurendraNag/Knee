@@ -30,6 +30,11 @@ left leg opens on the left leg.
 3. Tap the exact spot. The injury snaps to the nearest surface and gets a numbered red tag with a one-sentence explanation.
    Use **Undo last**, the **×** next to an injury, or the red **Clear all** button.
 
+**Double-tap zoom** (double-click with a mouse)
+- Double-tap a body part to fly in to it (its name and description show, everything around it stays solid).
+- Double-tap again on a spot to go closer to that spot, as many times as you like.
+- Zoom out (scroll, pinch or Zoom out) to step back one level at a time, back to the normal view. Double-tap empty space to go straight back.
+
 **Share, Save image and Cases** (on a phone, tap **More** to see them)
 - **Share** makes a link that reopens the same view and injuries. The whole view is packed into the part of the link after
   `#`, which browsers never send to the server, so nothing is stored anywhere. Copy it or use the phone's share sheet.
@@ -73,6 +78,17 @@ Open **Whole body** from the leg app (or `/body.html`). It shows the full BodyPa
 
 The body data is built by `scripts/build-body.mjs` from the npm package `@dagno/anatomy-model` 0.1.2
 (BodyParts3D 4.0 simplified for the web, CC BY 4.0) into `public/body/`.
+
+## On a clinic website (embedding) and patient links
+
+The **Share** dialog also gives:
+- a **patient link** (`?patient=1`): the same view and injuries, view-only. Patients can turn, zoom, double-tap and tap to read,
+  but cannot add or remove injuries;
+- **website code**: an `<iframe>` snippet to paste into a page of the clinic website, one for doctors and one for patients.
+  Inside a website the page hides the Whole body link and shows **Open full screen** (opens the same view in a new tab).
+
+Example: `<iframe src="https://knee.surendranag.workers.dev/hand.html?embed=1&patient=1" title="Hand Explainer" width="100%" height="640" style="border:0" allow="fullscreen; clipboard-write"></iframe>`.
+Adding `#c=...` from a share link opens that exact view and injuries. Nothing about the patient is stored or sent anywhere.
 
 ## Running it locally
 
