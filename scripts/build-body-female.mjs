@@ -9,7 +9,9 @@
 //     urethra is modelled;
 //   - the skin is the BodyParts3D skin with the male genitals smoothed away, the chest raised over the breast tissue and
 //     the hips following the pelvis.
-// Not changed: overall height and build, the face, and the muscles (they stay those of the male reference body).
+//   - the pelvis, hip, knee, ankle and rear-foot bones, joint cartilage, knee ligaments and hip and leg muscles are the
+//     Visible Human Female's (data/visible-human-female, CC BY 4.0), fitted to this body by vhf-place.mjs (NOVHF=1 skips);
+// Not changed: overall height and build, the face, and the muscles of the trunk, arms and head (the reference body's).
 //   node scripts/build-body-female.mjs <anatomy-model/model> <open-anatomy-3d/models>
 import fs from 'node:fs';
 import path from 'node:path';
@@ -144,6 +146,9 @@ const add = (id, name, src, xf, system = 'reproductive') => { const Q = new Floa
 }
 // reshape the pelvis (everything, including the new organs and the skin)
 for (const p of parts) for (let i = 0; i < p.positions.length; i += 3) { const q = [p.positions[i], p.positions[i + 1], p.positions[i + 2]]; feminise(q); p.positions[i] = q[0]; }
+// Visible Human Female pelvis and lower limbs (real female anatomy) in place of the reference body's: see vhf-place.mjs
+if (!process.env.NOVHF) { const { placeVHF } = await import('./vhf-place.mjs'); placeVHF(parts, path.resolve('data/visible-human-female/vhf-lower-limb.bin.gz'), log); if (process.env.VHFCHECK) (await import('./vhf-place.mjs')).checkVHF(parts, log); }
+if (process.env.VHFONLY) process.exit(0);
 if (process.env.QUICK) process.exit(0);
 // Female urethra (modelled): a short tube from the neck of the bladder, down and forward along the front wall of the
 // vagina, opening just in front of it. (The male urethra runs through the penis and is dropped above.)
@@ -191,7 +196,7 @@ const PACKS = [
 ];
 const manifest = {
   version: 1, units: 'm', sex: 'female', source: atlas.version,
-  credit: 'BodyParts3D, © The Database Center for Life Science (CC BY 4.0); female organs: Human Reference Atlas 3D Reference Organs, HuBMAP (CC BY 4.0), via open-anatomy-3d (CC BY 4.0); pelvis, skin and placement adapted by this project',
+  credit: 'BodyParts3D, © The Database Center for Life Science (CC BY 4.0); female organs: Human Reference Atlas 3D Reference Organs, HuBMAP (CC BY 4.0), via open-anatomy-3d (CC BY 4.0); pelvis and lower limbs: Visible Human Female musculoskeletal geometries, Center for Orthopaedic Biomechanics, University of Denver (Andreassen et al., Sci Data 2023; CC BY 4.0); placement and skin adapted by this project',
   packs: [],
 };
 let total = 0;
@@ -232,6 +237,7 @@ for (const pack of PACKS) {
     const e = { id, name: p.name, system: p.system, v0: ps[0].v0, vc: ps[0].vc, t0: ps[0].t0, tc: ps[0].tc, c, r };
     if (ps.length > 1) e.pieces = ps.map((o) => [o.v0, o.vc, o.t0, o.tc]);
     if (p.female) e.female = 1;
+    if (p.vhf) e.vhf = 1;
     return e;
   });
   const raw = Buffer.concat([Buffer.from(pos.buffer), Buffer.from(nrm.buffer), Buffer.from(pid.buffer), Buffer.from(idx.buffer)]);

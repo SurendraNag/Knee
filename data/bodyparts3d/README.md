@@ -39,3 +39,5 @@ The female whole-body files (`public/body-female/`) are made by `scripts/build-b
 `@dagno/anatomy-model` package plus the female organs (uterus, ovaries, fallopian tubes, vagina, breast tissue) in
 `open-anatomy-3d` 0.1.0 (models/anatomy-female.glb; Human Reference Atlas 3D Reference Organs, HuBMAP, CC BY 4.0;
 package CC BY 4.0). `scripts/glb-read.mjs` reads its meshopt-compressed GLB files as data.
+The female pelvis and lower limbs come from `data/visible-human-female/` (see the README there), placed by
+`scripts/vhf-place.mjs`.

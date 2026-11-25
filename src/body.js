@@ -19,7 +19,7 @@ for (const b of document.querySelectorAll('[data-sex]')) {
   const on = b.dataset.sex === SEX; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on));
   b.addEventListener('click', () => { if (on) return; const u = new URL(location.href); if (b.dataset.sex === 'female') u.searchParams.set('sex', 'female'); else u.searchParams.delete('sex'); location.href = u.toString(); });
 }
-if (SEX === 'female') $('#credit-in').innerHTML = 'Model: <a href="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html" target="_blank" rel="noopener">BodyParts3D</a> © The Database Center for Life Science, with female organs from the <a href="https://humanatlas.io" target="_blank" rel="noopener">Human Reference Atlas</a> (HuBMAP) via <a href="https://github.com/MervinR07/open-anatomy-3d" target="_blank" rel="noopener">open-anatomy-3d</a>, all <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>. Female pelvis, organ placement and skin adapted by this project; height, build and face are the reference body\'s. <b>Female body: preview, waiting for doctor review.</b>';
+if (SEX === 'female') $('#credit-in').innerHTML = 'Model: <a href="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html" target="_blank" rel="noopener">BodyParts3D</a> © The Database Center for Life Science, with female organs from the <a href="https://humanatlas.io" target="_blank" rel="noopener">Human Reference Atlas</a> (HuBMAP) via <a href="https://github.com/MervinR07/open-anatomy-3d" target="_blank" rel="noopener">open-anatomy-3d</a>, all <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>. Pelvis, hip, knee, ankle and foot bones, joint cartilage, knee ligaments and the hip and leg muscles from the <a href="https://doi.org/10.56902/COB.vh.2022.0" target="_blank" rel="noopener">Visible Human Female</a> lower-limb models (Center for Orthopaedic Biomechanics, University of Denver; Andreassen et al., Sci Data 2023; CC BY 4.0), fitted to this body. Organ placement and skin adapted by this project; height, build and face are the reference body\'s. <b>Female body: preview, waiting for doctor review.</b>';
 
 // ---------- Renderer ----------
 const canvas = $('#c');
@@ -120,6 +120,17 @@ const FEMALE_INFO = {
   F_VAGINA: 'The vagina: the muscular passage from the cervix (the neck of the uterus) to the outside of the body.',
   F_URETHRA: 'The female urethra: a short tube, about 4 cm long, that carries urine from the bladder to its opening just in front of the vagina. Its shape here is simplified.',
 };
+// Visible Human Female parts (female body): what the new ones are
+const VHF_INFO = [
+  [/cartilage of .*femoral head|cartilage of .*acetabulum/i, 'Articular (hyaline) cartilage of the hip: a smooth, slippery layer, a few millimetres thick, on the ball of the femur and in the socket of the pelvis. It wears thin in hip arthritis.'],
+  [/cartilage of .*(condyles|tibial plateau|patella)/i, 'Articular (hyaline) cartilage of the knee: the smooth layer on the ends of the femur and tibia and the back of the kneecap that lets the joint glide. It wears thin in knee arthritis.'],
+  [/cartilage of .*(talus|tibia at the ankle)/i, 'Articular cartilage of the ankle: the smooth layer where the tibia and the talus meet.'],
+  [/anterior cruciate/i, 'The anterior cruciate ligament (ACL): inside the knee, from the femur to the front of the tibia. It stops the tibia sliding forward and helps control twisting; it is often torn in pivoting sports.'],
+  [/posterior cruciate/i, 'The posterior cruciate ligament (PCL): inside the knee, behind the ACL. It stops the tibia sliding backward, for example in a dashboard injury.'],
+  [/medial collateral/i, 'The medial collateral ligament (MCL): on the inner side of the knee. It resists the knee being pushed inward (a blow to the outside of the knee).'],
+  [/lateral collateral/i, 'The lateral collateral ligament (LCL): on the outer side of the knee, from the femur to the head of the fibula. It resists the knee being pushed outward.'],
+  [/^coccyx$/i, 'The coccyx (tailbone): three to five small fused vertebrae at the bottom of the spine.'],
+];
 const KNEE_PARTS = /femur|tibia|fibula|patella|quadriceps|vastus|rectus femoris|biceps femoris|semitendinosus|semimembranosus|gastrocnemius|popliteus|sartorius|gracilis|plantaris/i;
 const packs = {}; // id -> { info, mesh, state(Uint8Array RGBA), tex, parts, loaded, loading }
 const allParts = []; // { pack, i, p }
@@ -237,7 +248,8 @@ function select(packId, i, { fly = false } = {}) {
   ui.selected = { pack: packId, i };
   const [group, what0] = SYSTEM_INFO[p.system] || ['Part', ''];
   const fem = FEMALE_INFO[p.id];
-  const what = fem ? fem + ' (Preview: waiting for a doctor to review.)' : what0;
+  const vhf = p.vhf ? (VHF_INFO.find(([re]) => re.test(p.name))?.[1] || what0) + ' Shape from the Visible Human Female scans (a real woman), fitted to this body. (Preview: waiting for a doctor to review.)' : null;
+  const what = fem ? fem + ' (Preview: waiting for a doctor to review.)' : vhf || what0;
   $('#info-group').textContent = group; $('#info-name').textContent = p.name; $('#info-what').textContent = what;
   $('#act-knee').hidden = !(KNEE_PARTS.test(p.name) && /right/i.test(p.name));
   $('#info').classList.remove('hidden');

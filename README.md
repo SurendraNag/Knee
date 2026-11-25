@@ -155,7 +155,15 @@ The body data is built by `scripts/build-body.mjs` from the npm package `@dagno/
 - the male reproductive organs and male urethra are removed; the uterus, ovaries, fallopian tubes, vagina and breast
   (mammary gland) tissue come from the Human Reference Atlas 3D reference organs (HuBMAP, CC BY 4.0, via open-anatomy-3d);
   a short female urethra is modelled;
-- the skin is smoothed over the groin and raised over the breast tissue. Height, build, face and muscles stay those of the
+- the pelvis (hip bones, sacrum, coccyx), the hip, knee, ankle and rear-foot bones, their joint cartilage, the four knee
+  ligaments (ACL, PCL, MCL, LCL) and 38 hip and leg muscles a side are a real woman's: the Visible Human Female lower-limb
+  models (Center for Orthopaedic Biomechanics, University of Denver; Andreassen et al., Sci Data 2023; CC BY 4.0), fitted
+  to this body by `scripts/vhf-place.mjs`. The pelvis is fitted as one piece; the thigh and shin bones are placed by their
+  joint centres and stretched along their length to the body's leg length, so the hip and knee joints stay closed; the
+  foot hinges on the ankle axis. Muscles follow the bones around them. The dataset's muscles are the fleshy bellies, so the
+  reference body's tendons are kept at their ends; its forefoot is one fused model, so the separate metatarsals and toe
+  bones stay the reference body's;
+- the skin is smoothed over the groin and raised over the breast tissue. Height, build and face stay those of the
   reference body. (The ready-made female body in open-anatomy-3d was tried first, but its pelvis and hands are distorted.)
 
 ## On a clinic website (embedding) and patient links
