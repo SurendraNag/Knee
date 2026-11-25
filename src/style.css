@@ -98,3 +98,24 @@ button.danger:hover:not(:disabled) { background: #f15c61; }
 .tag { position: absolute; transform: translate(-50%, -50%); box-shadow: 0 0 0 2px #fff, 0 2px 8px rgba(0,0,0,.6); width: 26px; height: 26px; }
 .mode-injury #info { display: none; }
 @media (max-width: 760px) { .injury { max-height: 38%; } }
+
+.spread label { font-size: 13px; color: var(--muted); }
+.spread input { width: 110px; accent-color: var(--accent); }
+#leaders { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+#leaders line { stroke: rgba(255,255,255,0.55); stroke-width: 1; }
+#leaders circle { fill: #fff; }
+#labels-layer { position: absolute; inset: 0; pointer-events: none; }
+.lbl { position: absolute; transform: translateY(-50%); font-size: 12px; font-weight: 600; color: #f2f5f8; background: rgba(12,16,22,0.78);
+  border: 1px solid rgba(255,255,255,0.18); padding: 2px 7px; border-radius: 6px; white-space: nowrap; pointer-events: auto; cursor: pointer; }
+.lbl.sel { background: var(--accent); border-color: var(--accent); }
+#cube-wrap { position: absolute; right: 22px; bottom: calc(110px + env(safe-area-inset-bottom)); width: 64px; height: 64px; perspective: 260px; }
+#cube { width: 64px; height: 64px; position: relative; transform-style: preserve-3d; }
+#cube .face { position: absolute; width: 64px; height: 64px; display: grid; place-items: center; font-size: 11px; font-weight: 700; color: #dfe7ef;
+  background: rgba(40,52,68,0.88); border: 1px solid rgba(255,255,255,0.25); cursor: pointer; backface-visibility: hidden; user-select: none; }
+#cube .face:hover { background: var(--accent); }
+.f-front { transform: translateZ(32px); } .f-back { transform: rotateY(180deg) translateZ(32px); }
+.f-in { transform: rotateY(90deg) translateZ(32px); } .f-out { transform: rotateY(-90deg) translateZ(32px); }
+.f-top { transform: rotateX(90deg) translateZ(32px); } .f-bottom { transform: rotateX(-90deg) translateZ(32px); }
+.info .actions button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); }
+@media (max-width: 760px) { #cube-wrap { top: calc(84px + env(safe-area-inset-top)); bottom: auto; right: 16px; width: 52px; height: 52px; transform: scale(0.82); transform-origin: top right; }
+  .spread input { flex: 1; } .group.spread { flex: 1 1 100%; } .lbl { font-size: 11px; } }

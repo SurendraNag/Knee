@@ -48,7 +48,7 @@ controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
 
 // ---------- state ----------
 const meshes = {}; // id -> mesh
-const state = { peel: 2, xray: false, selected: null, mode: 'explore', step: 1, injTarget: null, injType: null };
+const state = { peel: 2, xray: false, selected: null, isolate: false, labels: false, spread: 0, mode: 'explore', step: 1, injTarget: null, injType: null };
 let injuries = null;
 
 // ---------- load anatomy ----------
@@ -103,12 +103,18 @@ async function loadAnatomy() {
 function applyVisibility() {
   for (const mesh of Object.values(meshes)) {
     const { layer } = mesh.userData.info;
-    mesh.visible = layer >= state.peel;
-    const faded = state.xray && (layer === 4 || layer === 3 || layer <= 1 || mesh.userData.info.kind === 'tendon');
+    const id = mesh.userData.id;
+    const focus = state.mode === 'explore' && state.selected;
+    const spreadHide = state.spread > 0.02 && !SPREAD[id];
+    mesh.visible = layer >= state.peel && !spreadHide && !(state.isolate && focus && id !== focus);
+    let faded = state.xray && (layer === 4 || layer === 3 || layer <= 1 || mesh.userData.info.kind === 'tendon');
+    // glass focus: everything except the selected structure turns to glass
+    if (focus && id !== focus && !state.isolate) faded = true;
+    if (focus && id === focus) faded = false;
     const m = mesh.material;
     if (faded) {
       m.alphaHash = false; m.transparent = true; m.depthWrite = false;
-      m.opacity = layer === 4 ? 0.16 : layer === 3 ? 0.2 : mesh.userData.info.kind === 'tendon' ? 0.22 : 0.12;
+      m.opacity = focus && id !== focus ? (layer <= 1 ? 0.07 : 0.14) : layer === 4 ? 0.16 : layer === 3 ? 0.2 : mesh.userData.info.kind === 'tendon' ? 0.22 : 0.12;
     } else {
       m.alphaHash = true; m.transparent = false; m.depthWrite = true; m.opacity = 1;
     }
@@ -189,24 +195,27 @@ function setHighlight(id) {
 }
 function ensureVisible(id) {
   const info = STRUCTURES[id];
-  if (info.layer < state.peel) { state.peel = info.layer; $('#peel').value = String(state.peel); applyVisibility(); }
+  if (info.layer < state.peel) { state.peel = info.layer; $('#peel').value = String(state.peel); }
+  applyVisibility();
 }
 function select(id) {
   setHighlight(id);
   state.selected = id;
   const panel = $('#info');
-  if (!id) { panel.classList.add('hidden'); $('#picker').value = ''; frameFreeArea(); return; }
+  if (!id) { panel.classList.add('hidden'); $('#picker').value = ''; state.isolate = false; applyVisibility(); frameFreeArea(); return; }
   const info = STRUCTURES[id];
   $('#info-group').textContent = info.group;
   $('#info-name').textContent = info.name;
   $('#info-what').textContent = info.what;
   $('#info-injuries').innerHTML = info.injuries.map((t) => `<li>${t}</li>`).join('');
   $('#info-note').hidden = !info.simplified;
+  state.isolate = false; $('#isolate').setAttribute('aria-pressed', 'false');
   $('#picker').value = id;
   panel.classList.remove('hidden');
   frameFreeArea();
-  // make sure the structure is visible
-  if (info.layer < state.peel) { state.peel = info.layer; $('#peel').value = String(state.peel); applyVisibility(); }
+  // make sure the structure is visible, and turn everything else to glass
+  if (info.layer < state.peel) { state.peel = info.layer; $('#peel').value = String(state.peel); }
+  applyVisibility();
 }
 
 // ---------- picking (tap vs drag) ----------
@@ -222,9 +231,14 @@ canvas.addEventListener('pointerup', (e) => {
   const ndc = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
   ray.setFromCamera(ndc, camera);
   if (state.mode === 'injury') return injuryTap();
-  const pickable = Object.values(meshes).filter((m) => m.visible && !m.userData.faded);
+  // in glass focus everything else is faded, so allow picking any visible structure
+  const pickable = Object.values(meshes).filter((m) => m.visible && (!m.userData.faded || (state.selected && !state.xray)));
   const hits = ray.intersectObjects(pickable, false).filter((h) => fadeAt(h.point) > 0.5);
-  select(hits.length ? hits[0].object.userData.id : null);
+  const id = hits.length ? hits[0].object.userData.id : null;
+  const now = performance.now();
+  if (id && id === lastTap.id && now - lastTap.t < 400) { select(id); toggleIsolate(true); lastTap = { id: null, t: 0 }; return; }
+  lastTap = { id, t: now };
+  select(id);
 });
 function injuryTap() {
   if (state.step === 3) {
@@ -322,6 +336,92 @@ function wireInjuryUI() {
   $('#inj-clear').addEventListener('click', () => { injuries.clear(); renderInjuryList(); });
 }
 
+let lastTap = { id: null, t: 0 };
+function toggleIsolate(on) {
+  state.isolate = on ?? !state.isolate; $('#isolate').setAttribute('aria-pressed', String(state.isolate)); applyVisibility();
+  if (state.isolate) zoomStructure(0);
+}
+
+// ---------- spread apart ----------
+// which structures move, and where to (cm at full spread)
+const SPREAD = {
+  femur: [0, 3.2, 0], femoral_cartilage: [0, 3.2, 0],
+  patella: [0, 2.2, 4.2], patellar_cartilage: [0, 2.2, 4.2],
+  tibia: [0, -2.6, 0], tibial_cartilage: [0, -2.6, 0], fibula: [-1.6, -3.2, -0.6],
+  medial_meniscus: [0.4, -0.6, 0], lateral_meniscus: [-0.4, -0.6, 0],
+  acl: [-0.2, 0.6, 1.2], pcl: [0.2, 0.6, -1.2],
+};
+function applySpread() {
+  for (const [id, off] of Object.entries(SPREAD)) if (meshes[id]) meshes[id].position.set(off[0], off[1], off[2]).multiplyScalar(state.spread);
+  applyVisibility();
+}
+
+// ---------- labels with leader lines ----------
+const labelAnchors = {};
+function computeLabelAnchors() {
+  for (const [id, mesh] of Object.entries(meshes)) {
+    if (id === 'skin') continue;
+    const c = focusCenter(id).clone();
+    const res = mesh.geometry.boundsTree.closestPointToPoint(c);
+    labelAnchors[id] = res.point.clone();
+  }
+}
+function buildLabels() {
+  const layer = $('#labels-layer');
+  layer.innerHTML = Object.keys(labelAnchors).map((id) => `<div class="lbl" data-id="${id}">${STRUCTURES[id].name.replace(/ \(.*\)$/, '')}</div>`).join('');
+  layer.querySelectorAll('.lbl').forEach((el) => el.addEventListener('click', () => { if (state.mode === 'explore') { select(el.dataset.id); zoomStructure(0); } }));
+}
+const _lp = new THREE.Vector3(), _ln = new THREE.Vector3();
+function updateLabels() {
+  const layer = $('#labels-layer'), svg = $('#leaders');
+  if (!state.labels) { if (layer.childElementCount) { layer.style.display = 'none'; svg.innerHTML = ''; } return; }
+  layer.style.display = '';
+  const w = canvas.clientWidth, h = canvas.clientHeight, cx = w / 2;
+  const top = $('.modes').getBoundingClientRect().bottom + 12, bottom = $('.toolbar').getBoundingClientRect().top - 12;
+  const items = [];
+  for (const el of layer.children) {
+    const id = el.dataset.id, mesh = meshes[id];
+    const show = mesh.visible && (!mesh.userData.faded || id === state.selected) && (!state.selected || state.isolate ? true : true);
+    if (!show) { el.style.display = 'none'; continue; }
+    _lp.copy(labelAnchors[id]).add(mesh.position);
+    if (fadeAt(_lp) < 0.6) { el.style.display = 'none'; continue; }
+    _ln.copy(_lp).project(camera);
+    if (_ln.z > 1) { el.style.display = 'none'; continue; }
+    const x = (_ln.x * 0.5 + 0.5) * w, y = (-_ln.y * 0.5 + 0.5) * h;
+    items.push({ el, id, x, y, left: x < cx });
+  }
+  const lines = [];
+  const colX = { true: Math.max(12, cx - Math.min(w * 0.36, 330)), false: Math.min(w - 12, cx + Math.min(w * 0.36, 330)) };
+  for (const side of [true, false]) {
+    const col = items.filter((i) => i.left === side).sort((a, b) => a.y - b.y);
+    let prev = top - 24;
+    for (const it of col) { it.ly = Math.max(it.y, prev + 24); prev = it.ly; }
+    // push up from the bottom if we overflowed
+    let next = bottom + 24;
+    for (let k = col.length - 1; k >= 0; k--) { col[k].ly = Math.min(col[k].ly, next - 24); next = col[k].ly; }
+    for (const it of col) {
+      it.el.style.display = '';
+      it.el.classList.toggle('sel', it.id === state.selected);
+      const lw = it.el.offsetWidth;
+      const lx = side ? colX.true - lw : colX.false;
+      it.el.style.left = `${lx}px`; it.el.style.top = `${it.ly}px`;
+      lines.push(`<line x1="${it.x}" y1="${it.y}" x2="${side ? lx + lw : lx}" y2="${it.ly}"/><circle cx="${it.x}" cy="${it.y}" r="2.2"/>`);
+    }
+  }
+  svg.innerHTML = lines.join('');
+}
+
+// ---------- orientation cube ----------
+const _q = new THREE.Quaternion(), _m4 = new THREE.Matrix4();
+function updateCube() {
+  // rotate the cube by the inverse camera rotation so its faces match the model
+  _q.copy(camera.quaternion).invert();
+  _m4.makeRotationFromQuaternion(_q);
+  const e = _m4.elements;
+  // CSS has Y down: flip Y components
+  $('#cube').style.transform = `translateZ(-32px) matrix3d(${e[0]},${-e[1]},${e[2]},0,${-e[4]},${e[5]},${-e[6]},0,${e[8]},${-e[9]},${e[10]},0,0,0,0,1)`;
+}
+
 const fadeAt = (p) => 1 - THREE.MathUtils.smoothstep(Math.abs(p.y - 0.8), 7.5, 11.5);
 
 // ---------- UI wiring ----------
@@ -342,6 +442,15 @@ function wireUI() {
   $('#zoom-reset').addEventListener('click', () => zoomStructure(0));
   $('#reset').addEventListener('click', () => { select(null); resetView(); });
   $('#info-close').addEventListener('click', () => select(null));
+  $('#isolate').addEventListener('click', () => toggleIsolate());
+  $('#labels').addEventListener('click', () => { state.labels = !state.labels; $('#labels').setAttribute('aria-pressed', String(state.labels)); });
+  $('#spread').addEventListener('input', (e) => { state.spread = Number(e.target.value); applySpread(); });
+  document.querySelectorAll('#cube .face').forEach((f) => f.addEventListener('click', () => {
+    const v = f.dataset.face;
+    if (v === 'top') flyTo(controls.target.clone(), new THREE.Vector3(0.001, 1, 0.02), camera.position.distanceTo(controls.target));
+    else if (v === 'bottom') flyTo(controls.target.clone(), new THREE.Vector3(0.001, -1, 0.02), camera.position.distanceTo(controls.target));
+    else setView(v);
+  }));
   $('#version').textContent = `v${APP_VERSION}`;
   buildPicker();
   wireInjuryUI();
@@ -377,6 +486,9 @@ function loop(now) {
   stepAnim(now);
   controls.update();
   updateTags();
+  updateLabels();
+  updateCube();
+  if (injuries) injuries.syncExtras();
   renderer.render(scene, camera);
   frames++;
   if (now - fpsT > 1000) { fpsEl.textContent = `${Math.round((frames * 1000) / (now - fpsT))} fps`; frames = 0; fpsT = now; }
@@ -391,6 +503,7 @@ function loop(now) {
   const t0 = performance.now();
   await loadAnatomy();
   injuries = new InjuryManager(scene, meshes);
+  computeLabelAnchors(); buildLabels();
   applyVisibility();
   // test hooks
   window.__knee = { meshes, injuries, state, setMode, chooseInjTarget, renderInjuryList, THREE, camera, controls, flyTo, VIEWS, setView,
@@ -405,8 +518,10 @@ function loop(now) {
   const qs = new URLSearchParams(location.search);
   if (qs.has('peel')) { state.peel = Number(qs.get('peel')); $('#peel').value = qs.get('peel'); applyVisibility(); }
   if (qs.has('xray')) { state.xray = true; applyVisibility(); }
+  if (qs.has('labels')) { state.labels = true; }
+  if (qs.has('spread')) { state.spread = Number(qs.get('spread')); $('#spread').value = qs.get('spread'); applySpread(); }
   if (qs.has('view')) { const v = VIEWS[qs.get('view')]; camera.position.copy(HOME_TARGET).add(v.clone().normalize().multiplyScalar(HOME_DIST)); }
-  if (qs.has('sel')) { select(qs.get('sel')); if (qs.has('zoom')) { anim = null; const c = focusCenter(state.selected); const d = camera.position.clone().sub(controls.target).normalize(); camera.position.copy(c).add(d.multiplyScalar(focusRadius(state.selected) * 5 + 9)); controls.target.copy(c); } }
+  if (qs.has('sel')) { select(qs.get('sel')); if (qs.has('iso')) toggleIsolate(true); if (qs.has('zoom')) { anim = null; const c = focusCenter(state.selected); const d = camera.position.clone().sub(controls.target).normalize(); camera.position.copy(c).add(d.multiplyScalar(focusRadius(state.selected) * 5 + 9)); controls.target.copy(c); } }
   $('#loading').classList.add('done');
   window.__ready = { loadMs: Math.round(performance.now() - t0) };
   requestAnimationFrame(loop);

@@ -272,7 +272,7 @@ export class InjuryManager {
   // Snap a world-space hit to the structure and build the anchor for an injury.
   anchorFor(id, point) {
     const mesh = this.meshes[id];
-    const res = mesh.geometry.boundsTree.closestPointToPoint(point.clone());
+    const res = mesh.geometry.boundsTree.closestPointToPoint(mesh.worldToLocal(point.clone()));
     const p = res.point;
     const g = mesh.geometry, ia = g.index.array[res.faceIndex * 3];
     const nrm = new THREE.Vector3().fromBufferAttribute(g.attributes.normal, ia).normalize();
@@ -293,7 +293,8 @@ export class InjuryManager {
   set(list) { this.list = list.slice(); this.rebuild(); }
 
   // world position for the numbered tag
-  tagPoint(inj) {
+  tagPoint(inj) { return this.meshes[inj.id].localToWorld(this._tagLocal(inj)); }
+  _tagLocal(inj) {
     const t = this.targets[inj.id];
     const p = new THREE.Vector3().fromArray(inj.anchor.p);
     if (t.family === 'sweep' && inj.type === T.BUCKET) {
@@ -312,6 +313,7 @@ export class InjuryManager {
       t.uniforms.uInjN.value = mine.length;
       const needsBack = mine.some((x) => [T.G2, T.G3, T.SPLIT, T.BUCKET, T.FLAP, T.DISPLACED, T.SHATTERED].includes(x.type));
       for (const m of t.linked) { if (m.material.side !== (needsBack ? THREE.DoubleSide : THREE.FrontSide)) { m.material.side = needsBack ? THREE.DoubleSide : THREE.FrontSide; m.material.needsUpdate = true; } }
+      this._owner = id;
       mine.forEach((inj, i) => {
         const A = t.uniforms.uInjA.value[i], B = t.uniforms.uInjB.value[i], C = t.uniforms.uInjC.value[i];
         const p = new THREE.Vector3().fromArray(inj.anchor.p), n = new THREE.Vector3().fromArray(inj.anchor.n);
@@ -341,6 +343,10 @@ export class InjuryManager {
     }
   }
 
+  syncExtras() {
+    for (const c of this.extraGroup.children) { const o = this.meshes[c.userData.owner]; if (o) { c.position.copy(o.position); c.visible = o.visible; } }
+  }
+
   addFragments(p, n, dir, seed) {
     const r = rng(seed + 0.17);
     const perp = new THREE.Vector3().crossVectors(n, dir).normalize();
@@ -354,6 +360,7 @@ export class InjuryManager {
       const g = new ConvexGeometry(pts);
       g.translate(c.x, c.y, c.z);
       const m = new THREE.Mesh(g, this.fragMat);
+      m.userData.owner = this._owner;
       this.extraGroup.add(m);
     }
   }
@@ -386,7 +393,7 @@ export class InjuryManager {
         const end = start.clone().addScaledVector(outDir, len).add(new THREE.Vector3((r() - 0.5) * 0.3, (r() - 0.5) * 0.3, (r() - 0.5) * 0.3));
         const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
         const g = new THREE.TubeGeometry(curve, 6, 0.022 + r() * 0.018, 4, false);
-        this.extraGroup.add(new THREE.Mesh(g, this.fiberMat));
+        const fm = new THREE.Mesh(g, this.fiberMat); fm.userData.owner = this._owner; this.extraGroup.add(fm);
       }
     }
   }
