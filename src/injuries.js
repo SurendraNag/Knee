@@ -56,6 +56,9 @@ export const injuryKind = (id) => {
   return k === 'bone' || k === 'ligament' || k === 'tendon' || k === 'meniscus' || k === 'labrum' || k === 'disc' || k === 'spinaldisc' || k === 'jawdisc' ? k : null;
 };
 export const typeInfo = (kind, type) => INJURY_TYPES[kind].find((t) => t.type === type);
+// The injury types offered for one structure: a structure can narrow its kind's list with `injuryTypes` (for example, no
+// stress fractures or bone bruises on skull bones or teeth). Saved injuries of other types still render through typeInfo.
+export const injuryTypesFor = (id) => { const k = injuryKind(id), only = STRUCTURES[id]?.injuryTypes; return k ? INJURY_TYPES[k].filter((t) => !only || only.includes(t.type)) : []; };
 
 // ---------------- GLSL ----------------
 const NOISE = /* glsl */ `

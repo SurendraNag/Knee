@@ -4,7 +4,10 @@
 const ss = (x, a, b) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 export const fade = (x, y) => 1 - ss(-y, 11.8, 13.2); // the neck is cut below the hyoid
 
-const bone = (name, what, injuries, short, joint = 'skull') => ({ short: short || name.toLowerCase(), name, group: 'Bone', layer: 4, kind: 'bone', joint, what, injuries });
+// Skull, face and jaw bones are offered a crack (linear), a displaced (depressed) break and a shattered (comminuted) break;
+// stress fractures and bone bruises are not injuries of these bones. Teeth and the hyoid get only a crack or a break.
+const SKULL_TYPES = [23, 24, 25], TOOTH_TYPES = [23, 24];
+const bone = (name, what, injuries, short, joint = 'skull', injuryTypes = SKULL_TYPES) => ({ short: short || name.toLowerCase(), name, group: 'Bone', layer: 4, kind: 'bone', joint, what, injuries, injuryTypes });
 const muscle = (name, what, injuries = []) => ({ name, group: 'Muscle', layer: 1, kind: 'muscle', what, injuries });
 const SKULL_FX = ['Skull fractures from falls and blows to the head; a depressed fracture pushes bone inward', 'A fracture here can tear the blood vessels underneath and cause bleeding around the brain'];
 
@@ -12,7 +15,7 @@ export const STRUCTURES = {
   frontal_bone: bone('Frontal bone', 'The forehead bone. It forms the front of the skull and the roofs of the eye sockets, and holds the frontal sinuses.', [...SKULL_FX, 'Frontal sinus fractures from blows to the forehead'], 'frontal bone'),
   right_parietal_bone: bone('Right parietal bone', 'One of the two large bones that form the top and sides of the skull.', SKULL_FX, 'right parietal bone'),
   left_parietal_bone: bone('Left parietal bone', 'One of the two large bones that form the top and sides of the skull.', SKULL_FX, 'left parietal bone'),
-  right_temporal_bone: bone('Right temporal bone', 'The bone at the side of the skull around the ear. It holds the ear canal, the inner ear and the socket of the jaw joint. Its thin part (the pterion) covers the middle meningeal artery.', ['Temporal bone fractures can cause hearing loss or facial nerve weakness', 'A blow at the temple can tear the middle meningeal artery (extradural haematoma)'], 'right temporal bone'),
+  right_temporal_bone: bone('Right temporal bone', 'The bone at the side of the skull around the ear. It holds the ear canal, the inner ear and the socket of the jaw joint. At the temple it meets the frontal, parietal and sphenoid bones at the pterion, where the skull is thinnest and the middle meningeal artery runs just inside.', ['Temporal bone fractures can cause hearing loss or facial nerve weakness', 'A blow at the temple can tear the middle meningeal artery (extradural haematoma)'], 'right temporal bone'),
   left_temporal_bone: bone('Left temporal bone', 'The bone at the side of the skull around the ear, with the ear canal, inner ear and the socket of the jaw joint.', ['Temporal bone fractures can cause hearing loss or facial nerve weakness', 'A blow at the temple can tear the middle meningeal artery (extradural haematoma)'], 'left temporal bone'),
   occipital_bone: bone('Occipital bone', 'The bone at the back and base of the skull. The spinal cord passes through its large hole (foramen magnum), and it rests on the atlas.', ['Fractures from falls backward', 'Base of skull fractures: bruising behind the ears, fluid leaking from the nose or ears'], 'occipital bone'),
   sphenoid_bone: bone('Sphenoid bone', 'A butterfly-shaped bone in the middle of the skull base, behind the eyes. The pituitary gland sits in a hollow on top of it.', ['Base of skull fractures in severe head injuries'], 'sphenoid bone'),
@@ -24,10 +27,10 @@ export const STRUCTURES = {
   palatine_bones: bone('Palatine bones', 'Two L-shaped bones at the back of the roof of the mouth (hard palate) and the floor of the nose.', ['Fractures with severe mid-face injuries'], 'palatine bones', 'face'),
   vomer: bone('Vomer', 'A thin bone that forms the back and lower part of the wall between the two sides of the nose (nasal septum).', ['Damaged with a deviated or broken nasal septum'], 'vomer', 'face'),
   lacrimal_bones: bone('Lacrimal bones', 'The smallest facial bones, on the inner wall of each eye socket, next to the tear duct.', ['Fractures with injuries to the inner corner of the eye socket can block the tear duct'], 'lacrimal bones', 'face'),
-  mandible: bone('Lower jaw (mandible)', 'The lower jaw, the only skull bone that moves. Its two upper ends (condyles) form the jaw joints in front of the ears.', ['Jaw fractures from punches and falls, often in two places (for example the body on one side and the condyle on the other)', 'Condyle fractures from a fall onto the chin'], 'lower jaw', 'jaw'),
-  upper_teeth: bone('Upper teeth', 'The sixteen permanent teeth of the upper jaw: incisors, canines, premolars and molars.', ['Broken (fractured) and knocked-out (avulsed) front teeth from falls and sports', 'A knocked-out permanent tooth should be put back or kept in milk and seen by a dentist straight away'], 'upper tooth', 'jaw'),
-  lower_teeth: bone('Lower teeth', 'The permanent teeth of the lower jaw.', ['Broken and knocked-out teeth from falls and sports'], 'lower tooth', 'jaw'),
-  hyoid: bone('Hyoid bone', 'A U-shaped bone in the front of the neck below the jaw. The tongue and throat muscles attach to it; it is not joined to any other bone.', ['Rarely broken; a fracture can come from strangulation or a direct blow'], 'hyoid', 'neck'),
+  mandible: bone('Lower jaw (mandible)', 'The lower jaw, the only skull bone that moves (apart from the tiny ear bones). Its two upper ends (condyles) form the jaw joints in front of the ears.', ['Jaw fractures from punches and falls, often in two places (for example the body on one side and the condyle on the other)', 'Condyle fractures from a fall onto the chin'], 'lower jaw', 'jaw'),
+  upper_teeth: bone('Upper teeth', 'The sixteen permanent teeth of the upper jaw: incisors, canines, premolars and molars.', ['Broken (fractured) and knocked-out (avulsed) front teeth from falls and sports', 'A knocked-out permanent tooth should be put back or kept in milk and seen by a dentist straight away'], 'upper tooth', 'jaw', TOOTH_TYPES),
+  lower_teeth: bone('Lower teeth', 'The permanent teeth of the lower jaw.', ['Broken and knocked-out teeth from falls and sports'], 'lower tooth', 'jaw', TOOTH_TYPES),
+  hyoid: bone('Hyoid bone', 'A U-shaped bone in the front of the neck below the jaw. The tongue and throat muscles attach to it; it is not joined to any other bone.', ['Rarely broken; a fracture can come from strangulation or a direct blow'], 'hyoid', 'neck', TOOTH_TYPES),
   c1: bone('C1 (atlas) vertebra', 'The first neck vertebra: a ring that carries the skull. Nodding happens here.', ['Jefferson fracture from a blow to the top of the head'], 'atlas', 'neck'),
   c2: bone('C2 (axis) vertebra', 'The second neck vertebra. Its peg (dens) is the pivot for turning the head.', ['Dens fractures, especially from falls in older people'], 'axis', 'neck'),
 

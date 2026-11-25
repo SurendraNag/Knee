@@ -201,3 +201,9 @@ smoothed; see `data/bodyparts3d/README.md`. Source files via the npm package
 ## Versions
 
 Each release is tagged (`v0.1.0`, `v0.2.0-preview`, …) and deployed to its own link so earlier versions stay available.
+
+- v0.12.2-preview: anatomy accuracy audit across all pages (Gray's / Netter): corrected the ACL's attachment, the pterion,
+  the anatomical snuffbox, the branching of the lower-leg arteries, the sciatic and median nerve areas, the costal cartilages,
+  and several smaller descriptions; the knee and ankle "Show… joint only" views now keep the whole collateral ligaments and
+  the PTFL; skull and face bones no longer offer stress fractures or bone bruises, teeth and the hyoid only a crack or a break;
+  the IT band and plantar fascia are listed as fascia.

@@ -4,7 +4,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
 import { STRUCTURES, LAYERS, CFG, LIMB } from './limbs.js';
 import { makeMaterials } from './materials.js';
-import { InjuryManager, INJURY_TYPES, injuryKind, typeInfo } from './injuries.js';
+import { InjuryManager, injuryTypesFor, injuryKind, typeInfo } from './injuries.js';
 import './style.css';
 
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
@@ -533,7 +533,7 @@ function chooseInjTarget(id) {
   const info = STRUCTURES[id], kind = injuryKind(id);
   $('#inj-target-group').textContent = info.group;
   $('#inj-target').textContent = info.name;
-  $('#inj-types').innerHTML = INJURY_TYPES[kind].map((t) => `<button data-type="${t.type}">${t.label}<small>${t.sub}</small></button>`).join('');
+  $('#inj-types').innerHTML = injuryTypesFor(id).map((t) => `<button data-type="${t.type}">${t.label}<small>${t.sub}</small></button>`).join('');
   $('#inj-types').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
     state.injType = Number(b.dataset.type);
     $('#inj-tap-msg').textContent = `Now tap the exact spot on the ${info.short} where the ${typeInfo(kind, state.injType).label.toLowerCase()} should appear.`;
