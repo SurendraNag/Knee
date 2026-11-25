@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
-import { STRUCTURES, LAYERS } from './structures.js';
+import { STRUCTURES, LAYERS, CFG, LIMB } from './limbs.js';
 import { makeMaterials } from './materials.js';
 import { InjuryManager, INJURY_TYPES, injuryKind, typeInfo } from './injuries.js';
 import './style.css';
@@ -30,20 +30,14 @@ scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 scene.environmentIntensity = 0.32;
 
 const camera = new THREE.PerspectiveCamera(30, 1, 0.5, 400);
-const HOME_TARGET = new THREE.Vector3(-1, -1, 1);
-const HOME_DIST = 250;
-const HOME_DIR = new THREE.Vector3(0.35, 0.1, 1);
-const FADE_Y0 = 55, FADE_Y1 = 60.5;
-function fadeY(y) { return 1 - THREE.MathUtils.smoothstep(y, FADE_Y0, FADE_Y1); }
-// Regions of the leg: where the camera looks, from which side, and how far away.
-const REGIONS = {
-  leg: { label: 'Whole leg', target: [-1, -1, 1], dir: [0.35, 0.1, 1], dist: 250 },
-  hip: { label: 'Hip', target: [-2, 44, 0.5], dir: [0.25, 0.1, 1], dist: 72 },
-  thigh: { label: 'Thigh', target: [-1.5, 22, 1.5], dir: [0.35, 0.1, 1], dist: 105 },
-  knee: { label: 'Knee', target: [0, 0.8, 0], dir: [0.35, 0.12, 1], dist: 44 },
-  calf: { label: 'Calf and shin', target: [-0.8, -20, 0], dir: [0.35, 0.1, 1], dist: 95 },
-  foot: { label: 'Ankle and foot', target: [-2.5, -39.5, 4], dir: [0.6, 0.45, 1], dist: 52 },
-};
+const HOME_TARGET = new THREE.Vector3(...CFG.home.target);
+const HOME_DIST = CFG.home.dist;
+const HOME_DIR = new THREE.Vector3(...CFG.home.dir);
+// fade the cut end of the model (the waist for the leg, below the elbow for the hand)
+const [FADE_Y0, FADE_Y1, FADE_DIR] = CFG.fade;
+function fadeY(y) { return FADE_DIR > 0 ? 1 - THREE.MathUtils.smoothstep(y, FADE_Y0, FADE_Y1) : 1 - THREE.MathUtils.smoothstep(-y, -FADE_Y0, -FADE_Y1); }
+// Regions: where the camera looks, from which side, and how far away.
+const REGIONS = CFG.regions;
 function goRegion(name) {
   const r = REGIONS[name]; if (!r) return;
   select(null);
@@ -62,7 +56,7 @@ scene.add(new THREE.HemisphereLight(0x9fb4cc, 0x2a2018, 0.2));
 
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true; controls.dampingFactor = 0.08;
-controls.minDistance = 6; controls.maxDistance = 280;
+controls.minDistance = LIMB === 'hand' ? 3 : 6; controls.maxDistance = 280;
 controls.screenSpacePanning = true;
 controls.zoomToCursor = true;
 controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
@@ -102,9 +96,13 @@ function setSide(side) {
   }
   document.querySelectorAll('#picker option[value]').forEach((op) => { if (op.value && STRUCTURES[op.value]) op.textContent = STRUCTURES[op.value].name; });
   document.querySelectorAll('[data-side]').forEach((b) => { const on = b.dataset.side === side; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+  // the cube's +X face shows whichever view looks from +X (leg: inside; hand: thumb side); mirrored for the left side
   const fi = document.querySelector('#cube .f-in'), fo = document.querySelector('#cube .f-out');
-  if (fi && fo) { const L = side === 'left'; fi.dataset.face = L ? 'outside' : 'inside'; fi.firstElementChild.textContent = L ? 'Outside' : 'Inside'; fo.dataset.face = L ? 'inside' : 'outside'; fo.firstElementChild.textContent = L ? 'Inside' : 'Outside'; }
-  document.title = `Leg Explainer · ${side === 'left' ? 'Left' : 'Right'} leg`;
+  const px = Object.keys(CFG.views).find((k) => CFG.views[k][0] > 0.5), mx = Object.keys(CFG.views).find((k) => CFG.views[k][0] < -0.5);
+  const cubeLabel = (k) => (CFG.cubeLabels && CFG.cubeLabels[k]) || k[0].toUpperCase() + k.slice(1);
+  if (fi && fo) { const L = side === 'left'; const a = L ? mx : px, b = L ? px : mx; fi.dataset.face = a; fi.firstElementChild.textContent = cubeLabel(a); fo.dataset.face = b; fo.firstElementChild.textContent = cubeLabel(b); }
+  for (const k of ['front', 'back']) { const el = document.querySelector(`#cube [data-face=${k}] span`); if (el) el.textContent = cubeLabel(k); }
+  document.title = `${CFG.title} · ${side === 'left' ? 'Left' : 'Right'} ${CFG.part}`;
   if (state.selected && typeof select === 'function') select(state.selected);
   if (injuries && typeof renderInjuryList === 'function') renderInjuryList();
 }
@@ -113,8 +111,8 @@ function setSide(side) {
 async function loadAnatomy() {
   const base = import.meta.env.BASE_URL;
   const [manifest, data] = await Promise.all([
-    fetch(`${base}anatomy/manifest.json`).then((r) => r.json()),
-    fetch(`${base}anatomy/anatomy.dat`).then((r) => r.arrayBuffer()),
+    fetch(`${base}${CFG.dataDir}/manifest.json`).then((r) => r.json()),
+    fetch(`${base}${CFG.dataDir}/anatomy.dat`).then((r) => r.arrayBuffer()),
   ]);
   let bin = data; const u8 = new Uint8Array(data, 0, 2);
   if (u8[0] === 0x1f && u8[1] === 0x8b) bin = await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
@@ -224,18 +222,13 @@ function stepAnim(now) {
   if (t >= 1) anim = null;
 }
 
-const VIEWS = {
-  front: new THREE.Vector3(0, 0.08, 1),
-  back: new THREE.Vector3(0, 0.08, -1),
-  inside: new THREE.Vector3(1, 0.08, 0), // medial
-  outside: new THREE.Vector3(-1, 0.08, 0), // lateral
-};
+const VIEWS = Object.fromEntries(Object.entries(CFG.views).map(([k, v]) => [k, new THREE.Vector3(...v)]));
 function setView(name) {
   const dist = camera.position.distanceTo(controls.target);
   flyTo(state.selected ? focusCenter(state.selected) : controls.target.clone(), VIEWS[name], dist);
   document.querySelectorAll('[data-view]').forEach((b) => b.classList.toggle('on', b.dataset.view === name));
 }
-function resetView() { goRegion('leg'); }
+function resetView() { goRegion(CFG.home.region); }
 
 function focusCenter(id) {
   const g = meshes[id].geometry; const s = g.boundingSphere.clone();
@@ -424,13 +417,7 @@ function toggleIsolate(on) {
 
 // ---------- spread apart ----------
 // which structures move, and where to (cm at full spread)
-const SPREAD = {
-  femur: [0, 3.2, 0], femoral_cartilage: [0, 3.2, 0],
-  patella: [0, 2.2, 4.2], patellar_cartilage: [0, 2.2, 4.2],
-  tibia: [0, -2.6, 0], tibial_cartilage: [0, -2.6, 0], fibula: [-1.6, -3.2, -0.6],
-  medial_meniscus: [0.4, -0.6, 0], lateral_meniscus: [-0.4, -0.6, 0],
-  acl: [-0.2, 0.6, 1.2], pcl: [0.2, 0.6, -1.2],
-};
+const SPREAD = CFG.spread;
 function applySpread() {
   for (const [id, off] of Object.entries(SPREAD)) if (meshes[id]) meshes[id].position.set(off[0], off[1], off[2]).multiplyScalar(state.spread);
   applyVisibility();
@@ -535,7 +522,7 @@ function wireUI() {
     else if (v === 'bottom') flyTo(controls.target.clone(), new THREE.Vector3(0.001, -1, 0.02), camera.position.distanceTo(controls.target));
     else setView(v);
   }));
-  document.querySelectorAll('[data-side]').forEach((b) => b.addEventListener('click', () => { setSide(b.dataset.side); toast(`${b.dataset.side === 'left' ? 'Left' : 'Right'} leg (mirror image of the scanned right leg)`); }));
+  document.querySelectorAll('[data-side]').forEach((b) => b.addEventListener('click', () => { setSide(b.dataset.side); toast(`${b.dataset.side === 'left' ? 'Left' : 'Right'} ${CFG.part} (mirror image of the scanned right ${CFG.part})`); }));
   $('#version').textContent = `v${APP_VERSION}`;
   const reg = $('#region');
   reg.innerHTML = '<option value="">Go to…</option>' + Object.entries(REGIONS).map(([k, r]) => `<option value="${k}">${r.label}</option>`).join('');
@@ -575,7 +562,7 @@ async function openShare(snap) {
     ${navigator.share ? '<button id="share-native">Send…</button>' : ''}`);
   $('#share-url').addEventListener('focus', (e) => e.target.select());
   $('#share-copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(url); toast('Link copied'); } catch { $('#share-url').select(); toast('Press Ctrl+C or Cmd+C to copy'); } });
-  $('#share-native')?.addEventListener('click', () => navigator.share({ title: 'Leg Explainer', url }).catch(() => {}));
+  $('#share-native')?.addEventListener('click', () => navigator.share({ title: CFG.title, url }).catch(() => {}));
 }
 function wrapText(g, text, maxW) {
   const words = text.split(/\s+/), lines = []; let line = '';
@@ -629,13 +616,13 @@ async function saveImage() {
   }
   // footer: what it is, the disclaimer and the credit
   g.fillStyle = '#e9eef4'; g.font = `700 ${13 * k}px system-ui, sans-serif`; g.textBaseline = 'alphabetic';
-  g.fillText(`Leg Explainer v${APP_VERSION} · ${state.side} leg · ${new Date().toLocaleDateString()}`, 16 * k, h + 22 * k);
+  g.fillText(`${CFG.title} v${APP_VERSION} · ${state.side} ${CFG.part} · ${new Date().toLocaleDateString()}`, 16 * k, h + 22 * k);
   g.fillStyle = '#ff8a8e'; const dis = 'Educational illustration, not for diagnosis.'; g.fillText(dis, out.width - 16 * k - g.measureText(dis).width, h + 22 * k);
   g.fillStyle = '#9aa7b6'; g.font = `${11 * k}px system-ui, sans-serif`;
-  g.fillText('Anatomy: BodyParts3D, © The Database Center for Life Science, CC BY 4.0 (modified). Cartilage, ligaments, menisci, nerves and most tendons are modelled.', 16 * k, h + 42 * k);
+  g.fillText(`Anatomy: BodyParts3D, © The Database Center for Life Science, CC BY 4.0 (modified). ${CFG.modelledNote}${CFG.preview ? ' Preview, pending doctor review.' : ''}`, 16 * k, h + 42 * k);
   const blob = await new Promise((res) => out.toBlob(res, 'image/png'));
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = `leg-explainer-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.png`;
+  a.download = `${CFG.part}-explainer-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.png`;
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   toast('Image saved to your downloads');
 }
@@ -746,7 +733,7 @@ function loop(now) {
       const inj = injuries.add(id, type, injuries.anchorFor(id, p), 0.37); renderInjuryList(); return inj; } };
   // test hooks for screenshots
   const qs = new URLSearchParams(location.search);
-  if (qs.get('side') === 'left') setSide('left');
+  setSide(qs.get('side') === 'left' ? 'left' : 'right');
   if (qs.get('vessels') === '0') setVessels(false);
   if (qs.has('hide')) { for (const k of qs.get('hide').split(',')) for (const id of Object.keys(meshes)) if (id === k || STRUCTURES[id].kind === k) state.hidden.add(id); applyVisibility(); }
   if (qs.has('peel')) { state.peel = Number(qs.get('peel')); $('#peel').value = qs.get('peel'); applyVisibility(); }

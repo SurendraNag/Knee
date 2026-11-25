@@ -14,3 +14,9 @@ arteries and veins, the iliotibial tract and the body skin) taken from BodyParts
 to the app's centimetre frame, smooths, and bakes them into `public/anatomy/`. Changes made by
 this project: cropping to the right leg, coordinate conversion, subdivision smoothing, generated
 cartilage shells, and ligaments, menisci and tendons that BodyParts3D does not include.
+
+`arm-extra.json` + `arm-extra.bin` (gzip) hold the right forearm and hand parts (bones, muscles with their tendons, flexor
+retinaculum, interosseous membrane, arteries, veins and the skin around the forearm and hand) from the same whole-body package
+(`@dagno/anatomy-model` 0.1.2, CC BY 4.0), converted by `scripts/extract-arm-extra.mjs` to the hand app's frame (cm, origin at
+the wrist, fingers up, palm forward: the scan's right hand turned 180 degrees about the front-back axis). `scripts/build-hand.mjs`
+reads them, smooths them and adds modelled cartilage, wrist and finger ligaments, finger extensor tendons and nerves.

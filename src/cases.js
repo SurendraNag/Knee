@@ -35,7 +35,8 @@ export async function decode(code) {
 }
 
 // Named cases live only in this browser (localStorage). Storage can be blocked (private windows), so every access is guarded.
-const KEY = 'leg-explainer-cases-v1';
+import { CFG } from './limbs.js';
+const KEY = CFG.casesKey;
 export function listCases() { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { return []; } }
 function writeCases(list) { try { localStorage.setItem(KEY, JSON.stringify(list)); return true; } catch { return false; } }
 export function saveCase(name, snap) {

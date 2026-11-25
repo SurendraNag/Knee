@@ -3,7 +3,7 @@
 // it can be serialised (structure id + type + anchor) and restored exactly.
 import * as THREE from 'three';
 import { ConvexGeometry } from 'three/addons/geometries/ConvexGeometry.js';
-import { STRUCTURES } from './structures.js';
+import { STRUCTURES, CARTILAGE_OF, CFG } from './limbs.js';
 
 const MAX = 6;
 export const T = {
@@ -16,11 +16,11 @@ export const INJURY_TYPES = {
   ligament: [
     { type: T.G1, label: 'Grade I sprain', sub: 'Stretched', say: (s) => `The ${s} is stretched but not torn; it usually heals with rest and exercises.` },
     { type: T.G2, label: 'Grade II sprain', sub: 'Partial tear, frayed fibres', say: (s) => `The ${s} is partly torn: some of its fibres are frayed and broken, so it is looser and weaker.` },
-    { type: T.G3, label: 'Grade III sprain', sub: 'Complete tear', say: (s, i = {}) => `The ${s} is torn all the way through, so its two ends have pulled apart and it no longer holds the ${i.joint || 'knee'} steady.` },
+    { type: T.G3, label: 'Grade III sprain', sub: 'Complete tear', say: (s, i = {}) => `The ${s} is torn all the way through, so its two ends have pulled apart and it no longer holds the ${i.joint || CFG.defaultJoint} steady.` },
   ],
   tendon: [
     { type: T.G2, label: 'Partial tear', sub: 'Frayed fibres', say: (s) => `The ${s} is partly torn: some fibres are frayed and broken.` },
-    { type: T.G3, label: 'Complete tear', sub: 'Torn through', say: (s, i = {}) => `The ${s} is torn all the way through, so ${i.tearEffect || 'the knee cannot be straightened with force'}.` },
+    { type: T.G3, label: 'Complete tear', sub: 'Torn through', say: (s, i = {}) => `The ${s} is torn all the way through, so ${i.tearEffect || CFG.defaultTearEffect}.` },
   ],
   meniscus: [
     { type: T.SPLIT, label: 'Split tear', sub: 'Radial split from the inner edge', say: (s) => `The ${s} has a split running in from its inner edge, like a cut across a rubber ring.` },
@@ -31,6 +31,10 @@ export const INJURY_TYPES = {
     { type: T.SPLIT, label: 'Labral tear', sub: 'Split at the rim', say: (s) => `The ${s} is split where it joins the rim of the socket, so it no longer seals the joint and can catch, click or cause groin pain.` },
     { type: T.FLAP, label: 'Flap tear', sub: 'Loose flap lifted up', say: (s) => `A flap of the ${s} has torn loose and can catch between the ball and the socket.` },
   ],
+  disc: [
+    { type: T.SPLIT, label: 'Central tear', sub: 'Split through the pad', say: (s) => `The ${s} has a tear through its thin centre, which can cause clicking and pain on the little-finger side of the wrist.` },
+    { type: T.FLAP, label: 'Peripheral tear', sub: 'Torn loose at its edge', say: (s) => `The ${s} has torn loose at its edge, so it no longer holds the ends of the forearm bones firmly together.` },
+  ],
   bone: [
     { type: T.HAIRLINE, label: 'Hairline crack', sub: 'Thin crack, no shift', say: (s) => `A thin crack runs through the ${s}; the pieces have not moved apart.` },
     { type: T.DISPLACED, label: 'Displaced break', sub: 'Pieces shifted apart', say: (s) => `The ${s} is broken clean through and the pieces have shifted out of line.` },
@@ -40,8 +44,8 @@ export const INJURY_TYPES = {
   ],
 };
 export const injuryKind = (id) => {
-  const k = STRUCTURES[id]?.kind;
-  return k === 'bone' || k === 'ligament' || k === 'tendon' || k === 'meniscus' || k === 'labrum' ? k : null;
+  const k = STRUCTURES[id]?.injury || STRUCTURES[id]?.kind;
+  return k === 'bone' || k === 'ligament' || k === 'tendon' || k === 'meniscus' || k === 'labrum' || k === 'disc' ? k : null;
 };
 export const typeInfo = (kind, type) => INJURY_TYPES[kind].find((t) => t.type === type);
 
@@ -250,11 +254,6 @@ function ringAt(geom, u) {
 // deterministic random
 function rng(seed) { let s = Math.floor(seed * 1e6) || 1; return () => ((s = (s * 16807) % 2147483647) / 2147483647); }
 
-const CARTILAGE_OF = {
-  femur: ['femoral_cartilage', 'femoral_head_cartilage'], tibia: ['tibial_cartilage'], patella: ['patellar_cartilage'],
-  hip_bone: ['acetabular_cartilage'], talus: ['ankle_cartilage', 'foot_cartilage'],
-  calcaneus: ['foot_cartilage'], navicular: ['foot_cartilage'], cuboid: ['foot_cartilage'], cuneiforms: ['foot_cartilage'],
-};
 
 export class InjuryManager {
   constructor(scene, meshes) {
@@ -369,9 +368,10 @@ export class InjuryManager {
     const perp = new THREE.Vector3().crossVectors(n, dir).normalize();
     const count = 9;
     for (let k = 0; k < count; k++) {
-      const a = (k / count) * Math.PI * 2 + r() * 0.5, d = 0.15 + r() * 0.6;
+      const sc = CFG.injuryScale ?? 1;
+      const a = (k / count) * Math.PI * 2 + r() * 0.5, d = (0.15 + r() * 0.6) * sc;
       const c = p.clone().addScaledVector(dir, Math.cos(a) * d).addScaledVector(perp, Math.sin(a) * d).addScaledVector(n, -0.05 + r() * 0.25);
-      const size = 0.18 + r() * 0.26;
+      const size = (0.18 + r() * 0.26) * sc;
       const pts = [];
       for (let j = 0; j < 7; j++) pts.push(new THREE.Vector3((r() - 0.5) * size * 2.2, (r() - 0.5) * size * 1.2, (r() - 0.5) * size * 1.6));
       const g = new ConvexGeometry(pts);
@@ -405,7 +405,7 @@ export class InjuryManager {
         const off = new THREE.Vector3(Math.cos(ang), Math.sin(ang), (r() - 0.5)).cross(t).normalize().multiplyScalar(rad * (0.3 + r() * 0.7));
         const start = c.clone().add(off);
         const outDir = inj.type === T.G3 ? t.clone().multiplyScalar(-sg) : off.clone().normalize();
-        const len = 0.25 + r() * 0.45;
+        const len = (0.25 + r() * 0.45) * (CFG.injuryScale ?? 1);
         const mid = start.clone().addScaledVector(outDir, len * 0.5).add(new THREE.Vector3((r() - 0.5) * 0.15, (r() - 0.5) * 0.15, (r() - 0.5) * 0.15));
         const end = start.clone().addScaledVector(outDir, len).add(new THREE.Vector3((r() - 0.5) * 0.3, (r() - 0.5) * 0.3, (r() - 0.5) * 0.3));
         const curve = new THREE.QuadraticBezierCurve3(start, mid, end);

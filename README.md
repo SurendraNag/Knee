@@ -38,6 +38,27 @@ left leg opens on the left leg.
 - **Cases** saves the current view under a name you choose (for example "ACL tear, side view"), in this browser only.
   Open, share, rename or delete saved cases from the same list. Use names that describe the injury, not the patient.
 
+## Hand Explainer (`hand.html`)
+
+Open **Hand** from the leg app (or `/hand.html`). It shows the forearm and hand, from just below the elbow to the fingertips,
+as a **Right hand / Left hand** switch (the left hand is the mirror image of the scanned right hand).
+It works like the leg app: Explore and Injury modes, layers, labels, see-through bone, spread apart, Share, Save image and Cases
+(cases are kept separately from the leg's).
+
+- Views: **Palm**, **Back**, **Thumb side**, **Little side**. **Go to…**: forearm and hand, hand, wrist, fingers, thumb, back of the hand.
+- Scanned (BodyParts3D): radius, ulna, all eight wrist bones, the five metacarpals, the finger and thumb bones, 22 forearm and hand muscle
+  groups with their tendons, the flexor retinaculum, the interosseous membrane, the radial and ulnar arteries, the palmar arches and
+  finger arteries, the forearm and hand veins, and the skin.
+- Modelled: wrist and finger cartilage, the TFCC, the scapholunate ligament, the thumb's ulnar collateral ligament, the collateral
+  ligaments of the finger middle joints, the extensor tendons over the finger ends, and the median, ulnar and superficial radial nerves.
+- Injuries (**preview, waiting for doctor review**): fractures of every bone (for example distal radius, scaphoid, boxer's fracture of the
+  fifth metacarpal), ligament sprains grade I to III (scapholunate, skier's thumb, finger collaterals), TFCC central and peripheral tears,
+  and extensor tendon tears at the finger end (mallet finger).
+
+The hand data is built by `scripts/build-hand.mjs` into `public/hand/` from `data/bodyparts3d/arm-extra.*`
+(extracted by `scripts/extract-arm-extra.mjs` from `@dagno/anatomy-model` 0.1.2, BodyParts3D 4.0, CC BY 4.0).
+Shared build helpers are in `scripts/build-lib.mjs`; page differences (regions, views, spread, cases) are in `src/limbs.js`.
+
 ## Whole-body explorer (`body.html`)
 
 Open **Whole body** from the leg app (or `/body.html`). It shows the full BodyParts3D adult male model, about 2,200 parts.
@@ -60,6 +81,7 @@ npm install
 npm run dev            # local dev server
 npm run build          # production build into dist/
 npm run build:anatomy  # regenerate public/anatomy/* from scripts/build-anatomy.mjs
+npm run build:hand     # regenerate public/hand/* (forearm and hand)
 ```
 
 ## How the anatomy is made
