@@ -20,3 +20,8 @@ retinaculum, interosseous membrane, arteries, veins and the skin around the fore
 (`@dagno/anatomy-model` 0.1.2, CC BY 4.0), converted by `scripts/extract-arm-extra.mjs` to the hand app's frame (cm, origin at
 the wrist, fingers up, palm forward: the scan's right hand turned 180 degrees about the front-back axis). `scripts/build-hand.mjs`
 reads them, smooths them and adds modelled cartilage, wrist and finger ligaments, finger extensor tendons and nerves.
+
+`shoulder-extra.json` + `shoulder-extra.bin` (gzip) hold the right shoulder girdle, upper arm and elbow parts (bones, ribs 1 to 7 and
+breastbone, muscles, arteries, veins, the forearm's interosseous membrane and the skin of the arm, shoulder and right upper chest and
+back) from the same package, converted by `scripts/extract-region.mjs` (region `shoulder`) to cm with the origin near the humeral head
+and the scan's axes. `scripts/build-shoulder.mjs` smooths them and adds the modelled cartilage, labrum, ligaments, tendons and nerves.

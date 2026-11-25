@@ -28,7 +28,7 @@ export const INJURY_TYPES = {
     { type: T.FLAP, label: 'Flap tear', sub: 'Loose flap lifted up', say: (s) => `A loose flap of the ${s} has peeled up and can catch in the joint.` },
   ],
   labrum: [
-    { type: T.SPLIT, label: 'Labral tear', sub: 'Split at the rim', say: (s) => `The ${s} is split where it joins the rim of the socket, so it no longer seals the joint and can catch, click or cause groin pain.` },
+    { type: T.SPLIT, label: 'Labral tear', sub: 'Split at the rim', say: (s, i = {}) => `The ${s} is split where it joins the rim of the socket, so it no longer seals the joint and ${i.labrumEffect || 'can catch, click or cause groin pain'}.` },
     { type: T.FLAP, label: 'Flap tear', sub: 'Loose flap lifted up', say: (s) => `A flap of the ${s} has torn loose and can catch between the ball and the socket.` },
   ],
   disc: [

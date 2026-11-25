@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "build:anatomy": "node scripts/build-anatomy.mjs",
-    "build:hand": "node scripts/build-hand.mjs"
+    "build:hand": "node scripts/build-hand.mjs",
+    "build:shoulder": "node scripts/build-shoulder.mjs"
   },
   "license": "UNLICENSED",
   "dependencies": {

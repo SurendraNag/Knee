@@ -2,5 +2,5 @@ import { defineConfig } from 'vite';
 import { resolve } from 'node:path';
 export default defineConfig({
   base: './',
-  build: { chunkSizeWarningLimit: 900, rollupOptions: { input: { main: resolve(__dirname, 'index.html'), body: resolve(__dirname, 'body.html'), hand: resolve(__dirname, 'hand.html') } } },
+  build: { chunkSizeWarningLimit: 900, rollupOptions: { input: { main: resolve(__dirname, 'index.html'), body: resolve(__dirname, 'body.html'), hand: resolve(__dirname, 'hand.html'), shoulder: resolve(__dirname, 'shoulder.html') } } },
 });

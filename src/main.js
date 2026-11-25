@@ -41,6 +41,8 @@ const HOME_DIR = new THREE.Vector3(...CFG.home.dir);
 // fade the cut end of the model (the waist for the leg, below the elbow for the hand)
 const [FADE_Y0, FADE_Y1, FADE_DIR] = CFG.fade;
 function fadeY(y) { return FADE_DIR > 0 ? 1 - THREE.MathUtils.smoothstep(y, FADE_Y0, FADE_Y1) : 1 - THREE.MathUtils.smoothstep(-y, -FADE_Y0, -FADE_Y1); }
+// regions cut on more than one side give their own fade function of the point
+const fadeP = CFG.fadeFn || ((x, y) => fadeY(y));
 // Regions: where the camera looks, from which side, and how far away.
 const REGIONS = CFG.regions;
 function goRegion(name) {
@@ -62,7 +64,7 @@ scene.add(new THREE.HemisphereLight(0x9fb4cc, 0x2a2018, 0.2));
 
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true; controls.dampingFactor = 0.08;
-controls.minDistance = LIMB === 'hand' ? 3 : 6; controls.maxDistance = 280;
+controls.minDistance = CFG.minDistance || 6; controls.maxDistance = 280;
 controls.screenSpacePanning = true;
 controls.zoomToCursor = true;
 controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
@@ -143,7 +145,7 @@ async function loadAnatomy() {
         nrm[i * 3 + a] = qn[i * 3 + a] / 127;
       }
       // fade the cut at the top (waist), where the leg model ends
-      const fade = fadeY(pos[i * 3 + 1]);
+      const fade = fadeP(pos[i * 3], pos[i * 3 + 1], pos[i * 3 + 2]);
       const o = (ao[i] / 255) * (0.15 + 0.85 * fade);
       if (tint) { const k = tint[i] / 255; col[i * 4] = o * (0.58 + 0.36 * k); col[i * 4 + 1] = o * (0.13 + 0.77 * k); col[i * 4 + 2] = o * (0.11 + 0.75 * k); }
       else { col[i * 4] = col[i * 4 + 1] = col[i * 4 + 2] = o; } col[i * 4 + 3] = THREE.MathUtils.smoothstep(fade, 0, 0.45);
@@ -340,7 +342,7 @@ function zoomToTap() {
   zoomStack.push({ pos: camera.position.clone(), target: controls.target.clone(), dist: zoomLevelDist, selected: state.selected });
   let dist;
   if (zoomStack.length === 1) {
-    dist = Math.min(cur * 0.7, focusRadius(id) * 4 + (LIMB === 'hand' ? 5 : 9));
+    dist = Math.min(cur * 0.7, focusRadius(id) * 4 + (CFG.zoomPad || 9));
     if (state.mode === 'explore') select(id, { glass: false }); // show what it is, keep its surroundings solid
   } else dist = Math.max(controls.minDistance + 0.5, cur * 0.5);
   zoomLevelDist = dist;
@@ -539,7 +541,7 @@ function updateCube() {
   $('#cube').style.transform = `translateZ(-32px) matrix3d(${e[0]},${-e[1]},${e[2]},0,${-e[4]},${e[5]},${-e[6]},0,${e[8]},${-e[9]},${e[10]},0,0,0,0,1)`;
 }
 
-const fadeAt = (p) => fadeY(p.y);
+const fadeAt = (p) => fadeP(p.x, p.y, p.z);
 
 // ---------- UI wiring ----------
 function buildPicker() {
@@ -574,6 +576,15 @@ function wireUI() {
     const a = document.createElement('a'); a.className = 'btnlink embed-only'; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Open full screen';
     a.addEventListener('click', async () => { const u = new URL(await shareLink()); u.searchParams.delete('embed'); a.href = u.toString(); });
     a.href = location.href; $('.modes').appendChild(a);
+  }
+  { // switch to another body part, keeping patient and embed mode
+    const PAGES = [['index.html', 'Leg'], ['hand.html', 'Hand'], ['shoulder.html', 'Shoulder'], ['body.html', 'Whole body']];
+    const here = { leg: 'index.html', hand: 'hand.html', shoulder: 'shoulder.html' }[LIMB];
+    const sel = $('#part-nav');
+    if (sel) {
+      sel.innerHTML = PAGES.filter(([p]) => !(EMBED && p === 'body.html')).map(([p, t]) => `<option value="${p}"${p === here ? ' selected' : ''}>${t}</option>`).join('');
+      sel.addEventListener('change', () => { const keep = new URLSearchParams(); for (const k of ['patient', 'embed']) if (QS.get(k)) keep.set(k, QS.get(k)); const q = keep.toString(); location.href = `./${sel.value}${q ? '?' + q : ''}`; });
+    }
   }
   $('#version').textContent = `v${APP_VERSION}`;
   const reg = $('#region');

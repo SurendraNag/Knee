@@ -2,8 +2,10 @@
 // (<html data-limb="hand">). Everything that differs between them lives here.
 import * as LEG from './structures.js';
 import * as HAND from './hand-structures.js';
+import * as SHOULDER from './shoulder-structures.js';
 
-export const LIMB = typeof document !== 'undefined' && document.documentElement.dataset.limb === 'hand' ? 'hand' : 'leg';
+const PAGE = typeof document !== 'undefined' ? document.documentElement.dataset.limb : '';
+export const LIMB = ['hand', 'shoulder'].includes(PAGE) ? PAGE : 'leg';
 
 const CONFIGS = {
   leg: {
@@ -67,6 +69,38 @@ const CONFIGS = {
     injuryScale: 0.5, // bone fragments and torn fibres are drawn smaller on the small hand structures
     defaultJoint: 'wrist', defaultTearEffect: 'the joint cannot be straightened with force',
     preview: 'Hand anatomy and injuries are a preview, waiting for a doctor to review them.',
+    minDistance: 3, zoomPad: 5,
+  },
+  shoulder: {
+    set: SHOULDER, part: 'shoulder', title: 'Shoulder and Elbow Explainer', dataDir: 'shoulder', casesKey: 'shoulder-explainer-cases-v1',
+    home: { region: 'arm', target: [1, -15, 0], dir: [-0.35, 0.12, 1], dist: 150 },
+    fade: [0, 0, 1], fadeFn: SHOULDER.fade,
+    regions: {
+      arm: { label: 'Shoulder and arm', target: [1, -15, 0], dir: [-0.35, 0.12, 1], dist: 150 },
+      shoulder: { label: 'Shoulder', target: [3, -1.5, 0.5], dir: [-0.45, 0.25, 1], dist: 62 },
+      cuff: { label: 'Rotator cuff (from behind)', target: [3, -1, -2], dir: [-0.5, 0.45, -1], dist: 60 },
+      collarbone: { label: 'Collarbone and AC joint', target: [8, 3, 2.5], dir: [-0.1, 0.5, 1], dist: 55 },
+      upperarm: { label: 'Upper arm', target: [-1.5, -13, 0], dir: [-0.4, 0.1, 1], dist: 80 },
+      elbow: { label: 'Elbow', target: [-3.2, -26.5, 0], dir: [-0.2, 0.15, 1], dist: 38 },
+      elbowback: { label: 'Back of the elbow', target: [-3.5, -26, -1.5], dir: [0.2, 0.2, -1], dist: 38 },
+    },
+    // front, back, inside = toward the body (+X), outside = away from it
+    views: { front: [0, 0.08, 1], back: [0, 0.08, -1], inside: [1, 0.08, 0], outside: [-1, 0.08, 0] },
+    viewLabels: { front: 'Front', back: 'Back', inside: 'Body side', outside: 'Outside' },
+    cubeLabels: { front: 'Front', back: 'Back', inside: 'Body', outside: 'Out' },
+    cartilageOf: { humerus: ['shoulder_cartilage', 'elbow_cartilage'], scapula: ['shoulder_cartilage'], radius: ['elbow_cartilage'], ulna: ['elbow_cartilage'] },
+    spread: {
+      clavicle: [0, 2.2, 0.8], ac_ligament: [0, 1.4, 0.4], coracoclavicular_ligaments: [0, 1.1, 0.4],
+      scapula: [1.8, 0, -0.6], glenoid_labrum: [1.0, 0, -0.3], coracoacromial_ligament: [1.4, 0.4, -0.4],
+      humerus: [-1.6, -0.8, 0], rotator_cuff_tendon: [-0.8, 0.2, 0], biceps_tendon_long_head: [-0.6, -0.2, 0.2],
+      radius: [-0.8, -2.4, 0], ulna: [0.2, -2.4, 0], annular_ligament: [-0.6, -1.6, 0], elbow_ucl: [0.3, -1.2, 0], elbow_lcl: [-0.6, -1.2, 0],
+      distal_biceps_tendon: [-0.6, -1.6, 0.3],
+    },
+    modelledNote: 'Cartilage, labrum, shoulder and elbow ligaments, rotator cuff and biceps tendons and nerves are modelled.',
+    injuryScale: 0.8,
+    defaultJoint: 'shoulder', defaultTearEffect: 'the arm is weak and painful to lift',
+    preview: 'Shoulder and elbow anatomy and injuries are a preview, waiting for a doctor to review them.',
+    minDistance: 4, zoomPad: 7,
   },
 };
 export const CFG = CONFIGS[LIMB];

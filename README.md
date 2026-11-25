@@ -45,7 +45,7 @@ left leg opens on the left leg.
 
 ## Hand Explainer (`hand.html`)
 
-Open **Hand** from the leg app (or `/hand.html`). It shows the forearm and hand, from just below the elbow to the fingertips,
+Pick **Hand** from the body-part menu (or `/hand.html`). It shows the forearm and hand, from just below the elbow to the fingertips,
 as a **Right hand / Left hand** switch (the left hand is the mirror image of the scanned right hand).
 It works like the leg app: Explore and Injury modes, layers, labels, see-through bone, spread apart, Share, Save image and Cases
 (cases are kept separately from the leg's).
@@ -63,6 +63,29 @@ It works like the leg app: Explore and Injury modes, layers, labels, see-through
 The hand data is built by `scripts/build-hand.mjs` into `public/hand/` from `data/bodyparts3d/arm-extra.*`
 (extracted by `scripts/extract-arm-extra.mjs` from `@dagno/anatomy-model` 0.1.2, BodyParts3D 4.0, CC BY 4.0).
 Shared build helpers are in `scripts/build-lib.mjs`; page differences (regions, views, spread, cases) are in `src/limbs.js`.
+
+## Shoulder and Elbow Explainer (`shoulder.html`)
+
+Pick **Shoulder** from the body-part menu next to Explore and Injury (or open `/shoulder.html`). It shows the shoulder
+girdle, upper arm, elbow and the top of the forearm, with the upper ribs and breastbone for context, as a **Right arm / Left arm**
+switch (the left arm is the mirror image of the scanned right arm). Everything else works as in the leg and hand apps; its cases
+are kept separately.
+
+- Views: **Front**, **Back**, **Outside**, **Body side**. **Go to…**: shoulder and arm, shoulder, rotator cuff (from behind),
+  collarbone and AC joint, upper arm, elbow, back of the elbow.
+- Scanned (BodyParts3D): collarbone, shoulder blade, humerus, top of the radius and ulna, breastbone, ribs 1 to 7 with their cartilage,
+  22 muscle groups (deltoid, the four rotator cuff muscles, biceps, triceps, chest, back and forearm muscles), the axillary and
+  brachial arteries and their branches, the deep and superficial veins (including the median cubital vein), and the skin.
+- Modelled: shoulder and elbow cartilage, the glenoid labrum, the AC, coracoclavicular and coracoacromial ligaments, the rotator cuff
+  (supraspinatus) tendon, the long head and distal biceps tendons, the common extensor and flexor tendons (tennis and golfer's elbow
+  sites), the elbow's ulnar and radial collateral ligaments and annular ligament, and the axillary, radial, ulnar, median and
+  musculocutaneous nerves.
+- Injuries (**preview, waiting for doctor review**): rotator cuff partial and complete tears, labral tears (Bankart and flap),
+  AC separation, biceps ruptures at the shoulder and elbow, tennis and golfer's elbow, elbow ligament sprains including the UCL,
+  pulled elbow, and fractures of every bone (collarbone, neck and shaft of the humerus, radial head, olecranon and others).
+
+The data is built by `scripts/build-shoulder.mjs` into `public/shoulder/` from `data/bodyparts3d/shoulder-extra.*`
+(extracted by `scripts/extract-region.mjs <model> shoulder`). The region's fade at its cut edges is `fade()` in `src/shoulder-structures.js`.
 
 ## Whole-body explorer (`body.html`)
 
