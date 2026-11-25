@@ -218,7 +218,8 @@ const JOINTS = CFG.joints || {};
 const TISSUES = [
   ['bone', 'Bones', ['bone']],
   ['cartilage', 'Cartilage, menisci and labrum', ['cartilage', 'meniscus', 'labrum']],
-  ['ligament', 'Ligaments and joint capsule', ['ligament', 'capsule', 'fascia']],
+  ['ligament', 'Ligaments and joint capsule', ['ligament', 'capsule']],
+  ['fascia', 'Fascia (IT band, plantar fascia)', ['fascia']],
   ['tendon', 'Tendons', ['tendon']],
   ['disc', 'Discs', ['spinaldisc', 'jawdisc']],
   ['muscle', 'Muscles', ['muscle']],

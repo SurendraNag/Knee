@@ -22,7 +22,7 @@ left leg opens on the left leg.
 **Injury mode**
 1. Tap a ligament, tendon, meniscus, the hip labrum or a bone (or pick it from the list).
 2. Choose the injury type:
-   - Ligaments (knee, hip, ankle): Grade I (stretched), Grade II (partial tear, frayed fibres), Grade III (complete tear, separated curled ends)
+   - Ligaments: knee (ACL, PCL, MCL, LCL), hip (iliofemoral, pubofemoral, ischiofemoral, ligamentum teres; the hip has no collateral ligaments), ankle: Grade I (stretched), Grade II (partial tear, frayed fibres), Grade III (complete tear, separated curled ends)
    - Tendons (quadriceps, patellar, Achilles): partial or complete tear
    - Menisci: split, bucket-handle, flap tear
    - Hip labrum: labral tear, flap tear
@@ -35,7 +35,7 @@ left leg opens on the left leg.
   - **Joint**: the whole leg, or the hip, knee or ankle joint only. Everything outside a box around that joint is cut away,
     and the cut faces of bones show as flat cross-sections. Other pages offer their own joints (wrist, thumb, fingers;
     shoulder, AC joint, elbow; neck, low back, sacroiliac joints; right or left jaw joint, shown as a side slice through the joint).
-  - **Tissues**: tick bones, cartilage (with menisci and labrum), ligaments and joint capsule, tendons, discs, muscles, nerves,
+  - **Tissues**: tick bones, cartilage (with menisci and labrum), ligaments and joint capsule, tendons, fascia (IT band, plantar fascia), discs, muscles, nerves,
     blood vessels, brain and eyes, or skin, or use a preset such as **Bones and ligaments**. While tissues are chosen here the
     Layers slider and Vessels and nerves button are set aside; moving either one goes back to the normal layers.
 - A bar at the top says what is shown, with **Change** and **Show all**. The choice is kept in share links and saved cases.

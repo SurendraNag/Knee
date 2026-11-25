@@ -15,7 +15,7 @@ const CONFIGS = {
     home: { region: 'leg', target: [-1, -1, 1], dir: [0.35, 0.1, 1], dist: 250 },
     fade: [55, 60.5, 1], // [y0, y1, direction]: the cut at the waist fades out above y0
     joints: {
-      hip: { label: 'Hip joint', core: ['acetabular_cartilage', 'femoral_head_cartilage', 'labrum', 'hip_capsule'], pad: 3.5, region: 'hip' },
+      hip: { label: 'Hip joint', core: ['acetabular_cartilage', 'femoral_head_cartilage', 'labrum', 'hip_capsule', 'ligamentum_teres'], pad: 3.5, region: 'hip' },
       knee: { label: 'Knee joint', core: ['femoral_cartilage', 'tibial_cartilage', 'patellar_cartilage', 'medial_meniscus', 'lateral_meniscus', 'acl', 'pcl'], pad: 3.5, region: 'knee' },
       ankle: { label: 'Ankle joint', core: ['ankle_cartilage', 'atfl', 'cfl', 'deltoid_ligament', 'aitfl'], pad: 3, region: 'foot' },
     },

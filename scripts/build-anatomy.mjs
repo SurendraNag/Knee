@@ -435,6 +435,17 @@ sweeps.hip_capsule = { ...capsule.mesh, length: 4 };
   sweeps.pubofemoral_ligament = band(150, 125, 1.3, 1.1, 0.28);
   sweeps.ischiofemoral_ligament = band(235, 300, 1.6, 1.1, 0.3);
 }
+// Ligamentum teres (ligament of the head of the femur): a flat band inside the joint from the pit on the femoral head (fovea)
+// across the bare fossa of the socket to the acetabular notch at the bottom of the socket.
+{
+  const down = v3([0, -1, 0]); down.addScaledVector(CUP, -down.dot(CUP)).normalize();
+  const notch = CUP.clone().negate().multiplyScalar(Math.cos(62 * D)).addScaledVector(down, Math.sin(62 * D)).normalize();
+  const pts = []; for (let i = 0; i <= 16; i++) { const t = i / 16;
+    const d = FOVEA.clone().lerp(notch, t).normalize(); pts.push(HIP_C.clone().addScaledVector(d, HIP_R + 0.1 + 0.25 * smoothstep(0.3, 1, t)).toArray()); }
+  sweeps.ligamentum_teres = sweep({ points: pts, n: 40, m: 20, frame: hintFrame((t, p) => v3(p).sub(HIP_C).toArray()),
+    profile: (t) => lensProfile(mix(0.45, 0.8, t), 0.16, 20) });
+  log('ligamentum teres from', pts[0].map((v) => v.toFixed(1)).join(','), 'to', pts[16].map((v) => v.toFixed(1)).join(','));
+}
 
 // ---------- Ankle and foot joints ----------
 // Cartilage wherever two foot bones meet (the scan's joint gaps are about 0.1 cm).
