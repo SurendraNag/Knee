@@ -22,6 +22,21 @@ An interactive 3D model of the **right knee** that doctors and physical therapis
 3. Tap the exact spot. The injury snaps to the nearest surface and gets a numbered red tag with a one-sentence explanation.
    Use **Undo last**, the **×** next to an injury, or the red **Clear all** button.
 
+## Whole-body explorer (`body.html`)
+
+Open **Whole body** from the knee app (or `/body.html`). It shows the full BodyParts3D adult male model, about 2,200 parts.
+
+- **Systems** panel: switch skin, muscles, skeleton, ligaments and tendons, brain and nerves, arteries, veins, organs, and eyes and ears
+  on or off. Each system downloads the first time it is switched on (the skeleton is about 3 MB, muscles about 7 MB).
+- **Tap a part** to see its name and system. Then use *Zoom to it*, *Show only this* or *Hide it*. *Glass focus* turns everything
+  else see-through. *Show all parts* brings back hidden parts.
+- **Find a part**: type a name such as `left femur`, `stomach` or `vagus`.
+- **Go to…** flies to a region (head, chest, abdomen, pelvis, right shoulder, elbow, hand, knee, foot).
+- Injury mode is only on the knee for now; knee parts link to it.
+
+The body data is built by `scripts/build-body.mjs` from the npm package `@dagno/anatomy-model` 0.1.2
+(BodyParts3D 4.0 simplified for the web, CC BY 4.0) into `public/body/`.
+
 ## Running it locally
 
 ```bash

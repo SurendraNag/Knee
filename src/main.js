@@ -11,7 +11,8 @@ THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.BufferGeometry.prototype.disposeBoundsTree = disposeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
-export const APP_VERSION = '0.4.0-preview';
+import { APP_VERSION } from './version.js';
+export { APP_VERSION };
 const $ = (s) => document.querySelector(s);
 
 // ---------- renderer / scene ----------
@@ -135,7 +136,7 @@ function flyTo(target, dir, dist, ms = 650) {
 }
 function stepAnim(now) {
   if (!anim) return;
-  let t = Math.min(1, (now - anim.t0) / anim.ms);
+  let t = Math.min(1, Math.max(0, (now - anim.t0) / anim.ms));
   t = t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
   // interpolate around the target so the camera arcs rather than cutting through the model
   const target = anim.fromTarget.clone().lerp(anim.toTarget, t);

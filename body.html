@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<title>Body Explorer</title>
+<meta name="theme-color" content="#0b0f14" />
+</head>
+<body>
+<div id="app" class="body-app">
+  <canvas id="c"></canvas>
+
+  <header class="topbar">
+    <div class="brand">Body Explorer <span id="version" class="ver"></span></div>
+    <div class="disclaimer" role="note">Educational demo, not for diagnosis</div>
+  </header>
+
+  <nav class="modes" aria-label="Apps">
+    <button class="on" aria-current="page">Whole body</button>
+    <a class="btnlink" href="./index.html">Knee injuries</a>
+  </nav>
+
+  <aside class="systems" aria-label="Body systems">
+    <div class="systems-head">
+      <strong>Systems</strong>
+      <button id="sys-toggle" class="mini" aria-expanded="true">Hide</button>
+    </div>
+    <div id="sys-list" class="sys-list"></div>
+    <div class="search">
+      <input id="search" type="search" placeholder="Find a part, e.g. left femur" autocomplete="off" />
+      <ul id="results" class="results" hidden></ul>
+    </div>
+    <p class="credit-in">Model: <a href="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html" target="_blank" rel="noopener">BodyParts3D</a>, © The Database Center for Life Science, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>. Adult male reference; simplified for the web.</p>
+  </aside>
+
+  <section id="info" class="info hidden" aria-live="polite">
+    <button class="close" id="info-close" aria-label="Close">×</button>
+    <div class="eyebrow" id="info-group"></div>
+    <h2 id="info-name"></h2>
+    <p id="info-what"></p>
+    <div class="actions">
+      <button id="act-zoom">Zoom to it</button>
+      <button id="act-only" aria-pressed="false">Show only this</button>
+      <button id="act-hide">Hide it</button>
+      <a id="act-knee" class="btnlink" href="./index.html" hidden>Open knee injuries</a>
+    </div>
+  </section>
+
+  <div class="toolbar">
+    <div class="group views" role="group" aria-label="Views">
+      <button data-view="front">Front</button>
+      <button data-view="back">Back</button>
+      <button data-view="left">Left side</button>
+      <button data-view="right">Right side</button>
+      <button id="reset" title="Reset view">Reset</button>
+    </div>
+    <div class="group regions" role="group" aria-label="Go to region">
+      <select id="region" aria-label="Go to region">
+        <option value="">Go to…</option>
+        <option value="whole">Whole body</option>
+        <option value="head">Head and brain</option>
+        <option value="neck">Neck</option>
+        <option value="chest">Chest and heart</option>
+        <option value="abdomen">Abdomen</option>
+        <option value="pelvis">Pelvis and hip</option>
+        <option value="shoulder">Right shoulder</option>
+        <option value="elbow">Right elbow</option>
+        <option value="hand">Right hand</option>
+        <option value="knee">Right knee</option>
+        <option value="foot">Right foot and ankle</option>
+      </select>
+    </div>
+    <div class="group">
+      <button id="glass" aria-pressed="true" class="toggle" title="When a part is selected, show everything else as glass">Glass focus</button>
+      <button id="showall">Show all parts</button>
+    </div>
+  </div>
+
+  <div class="hint">Drag to rotate · pinch or scroll to zoom · right-drag or two fingers to pan · tap a part</div>
+  <div id="fps" class="fps" hidden></div>
+  <div id="loading"><div class="spinner"></div><div id="loading-text">Loading skeleton…</div></div>
+</div>
+<script type="module" src="./src/body.js"></script>
+</body>
+</html>

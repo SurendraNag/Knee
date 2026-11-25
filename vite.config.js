@@ -1,2 +1,6 @@
 import { defineConfig } from 'vite';
-export default defineConfig({ base: './', build: { chunkSizeWarningLimit: 900 } });
+import { resolve } from 'node:path';
+export default defineConfig({
+  base: './',
+  build: { chunkSizeWarningLimit: 900, rollupOptions: { input: { main: resolve(__dirname, 'index.html'), body: resolve(__dirname, 'body.html') } } },
+});
