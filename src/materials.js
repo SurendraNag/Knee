@@ -86,10 +86,10 @@ export function makeMaterials() {
   const common = { vertexColors: true, alphaHash: true };
   return {
     bone: () => addSurfaceNoise(new THREE.MeshPhysicalMaterial({
-      ...common, color: 0xdcd0b8, roughness: 0.88, metalness: 0, sheen: 0.25, sheenRoughness: 0.8, sheenColor: 0xfff4e0,
-    }), { scale: [7, 7, 7], bump: 0.022, colorVar: 0.1, pores: 0.35 }),
+      ...common, color: 0xe2d3b2, roughness: 0.62, clearcoat: 0.15, clearcoatRoughness: 0.6, metalness: 0, sheen: 0.25, sheenRoughness: 0.8, sheenColor: 0xfff4e0,
+    }), { scale: [5, 5, 5], bump: 0.01, colorVar: 0.14, pores: 0.5 }),
     cartilage: () => addSurfaceNoise(new THREE.MeshPhysicalMaterial({
-      ...common, color: 0xe2e2d8, roughness: 0.3, clearcoat: 0.5, clearcoatRoughness: 0.25, sheen: 0.25, sheenColor: 0xdbe9ff,
+      ...common, color: 0xa8c0d2, roughness: 0.18, clearcoat: 1.0, clearcoatRoughness: 0.08, clearcoatRoughness: 0.25, sheen: 0.25, sheenColor: 0xdbe9ff,
     }), { scale: [3, 3, 3], bump: 0.006, colorVar: 0.05 }),
     ligament: () => new THREE.MeshPhysicalMaterial({
       ...common, color: 0xffffff, map: ligTex, bumpMap: ligBump, bumpScale: 2.2, roughness: 0.48, sheen: 0.7, sheenRoughness: 0.4, sheenColor: 0xffffff,
@@ -98,7 +98,7 @@ export function makeMaterials() {
       ...common, color: 0xffffff, map: tenTex, bumpMap: tenBump, bumpScale: 1.6, roughness: 0.38, sheen: 0.9, sheenRoughness: 0.35, sheenColor: 0xf2f6ff,
     }),
     meniscus: () => addSurfaceNoise(new THREE.MeshPhysicalMaterial({
-      ...common, color: 0xebe0c8, roughness: 0.4, clearcoat: 0.35, clearcoatRoughness: 0.35, sheen: 0.5, sheenColor: 0xfff8ec,
+      ...common, color: 0xc3d3de, roughness: 0.25, clearcoat: 0.9, clearcoatRoughness: 0.12, sheen: 0.5, sheenColor: 0xfff8ec,
     }), { scale: [4, 4, 4], bump: 0.008, colorVar: 0.06 }),
     muscle: () => addSurfaceNoise(new THREE.MeshPhysicalMaterial({
       ...common, color: 0x9a3b31, roughness: 0.55, sheen: 0.6, sheenColor: 0xff9a8a, clearcoat: 0.2, clearcoatRoughness: 0.5,
