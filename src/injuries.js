@@ -14,9 +14,9 @@ export const T = {
 
 export const INJURY_TYPES = {
   ligament: [
-    { type: T.G1, label: 'Grade I sprain', sub: 'Stretched', say: (s) => `The ${s} is stretched but not torn; it usually heals with rest and exercises.` },
-    { type: T.G2, label: 'Grade II sprain', sub: 'Partial tear, frayed fibres', say: (s) => `The ${s} is partly torn: some of its fibres are frayed and broken, so it is looser and weaker.` },
-    { type: T.G3, label: 'Grade III sprain', sub: 'Complete tear', say: (s, i = {}) => `The ${s} is torn all the way through, so its two ends have pulled apart and it no longer holds the ${i.joint || CFG.defaultJoint} steady.` },
+    { type: T.G1, label: 'Mild sprain (grade I)', sub: 'Stretched, not torn', say: (s) => `The ${s} is stretched but not torn. This kind of injury often heals with rest and exercises; your clinician will say what applies to you.` },
+    { type: T.G2, label: 'Partial tear (grade II)', sub: 'Some fibres torn', say: (s) => `The ${s} is partly torn: some of its fibres are frayed and broken, so it is looser and weaker.` },
+    { type: T.G3, label: 'Complete tear (grade III)', sub: 'Torn all the way through', say: (s, i = {}) => `The ${s} is torn all the way through, so its two ends have pulled apart and it no longer holds the ${i.joint || CFG.defaultJoint} steady.` },
   ],
   tendon: [
     { type: T.G2, label: 'Partial tear', sub: 'Frayed fibres', say: (s) => `The ${s} is partly torn: some fibres are frayed and broken.` },
@@ -46,7 +46,7 @@ export const INJURY_TYPES = {
   bone: [
     { type: T.HAIRLINE, label: 'Hairline crack', sub: 'Thin crack, no shift', say: (s) => `A thin crack runs through the ${s}; the pieces have not moved apart.` },
     { type: T.DISPLACED, label: 'Displaced break', sub: 'Pieces shifted apart', say: (s) => `The ${s} is broken clean through and the pieces have shifted out of line.` },
-    { type: T.SHATTERED, label: 'Shattered break', sub: 'Sharp fragments', say: (s) => `The ${s} is broken into several sharp pieces at this spot.` },
+    { type: T.SHATTERED, label: 'Break in several pieces', sub: 'Comminuted fracture', say: (s) => `The ${s} is broken into several pieces at this spot (a comminuted fracture).` },
     { type: T.BRUISE, label: 'Bone bruise', sub: 'Soft discoloured patch', say: (s) => `The ${s} is bruised inside: bleeding and swelling in the bone, without a break.` },
     { type: T.STRESS, label: 'Stress fracture', sub: 'Faint line, slight swelling', say: (s) => `A small crack in the ${s} from repeated strain, with slight swelling around it.` },
   ],

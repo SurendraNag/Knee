@@ -7,6 +7,7 @@ import { MeshBVH, acceleratedRaycast } from 'three-mesh-bvh';
 import './style.css';
 import './pain.css';
 import { APP_VERSION } from './version.js';
+import { qrSvg, initBigText } from './qr.js';
 import { createModesty, REGIONS as PRIVATE } from './modesty.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
@@ -641,6 +642,7 @@ async function openSendWays() {
     <h3>What your doctor will get</h3>
     <pre class="summary">${esc(summaryLines().join('\n'))}</pre>
     <div class="row"><input type="text" id="s-url" readonly value="${esc(url)}" aria-label="Link to your pain map"><button id="s-copy-url">Copy link</button></div>
+    <div class="qr-wrap"><div class="qr">${qrSvg(url)}</div><p class="note">At the clinic, your doctor can scan this code from your screen to open your marks.</p></div>
     <p class="note">Anyone with the link can see your marks, so send it only to your doctor or clinic.</p>
     <button id="s-back">Back</button>`);
   $('#s-back').addEventListener('click', () => openSend());
@@ -658,6 +660,7 @@ async function openSendWays() {
   });
 }
 $('#send').addEventListener('click', () => { if (viewOnly) downloadPicture(); else openSend(); });
+initBigText($('#big'));
 
 // ---------- a map opened from a link (the doctor's view) ----------
 function setViewOnly(on, s) {

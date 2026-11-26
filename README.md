@@ -303,6 +303,14 @@ Each release is tagged (`v0.1.0`, `v0.2.0-preview`, …) and deployed to its own
 
 - v0.20.0-preview: genitals blurred by default on every page that shows them (body, leg and spine skin, pain map,
   saved images, patient and share links), with a clinician-only *Private parts* switch.
+- v0.21.0-preview: fixes from the simulated doctor and patient panel (26 Nov 2026). Calmer patient wording
+  ("Complete tear (grade III)" instead of "Grade III sprain", "Break in several pieces" instead of "Shattered break", no promise
+  that a sprain heals); new quick picks: thigh bone (femoral shaft) fracture, ankle fracture (outer ankle bone), thumb fracture at the
+  base (Bennett) and thumb bone fracture; hip fracture quick pick now takes the socket and hip ligaments away so the femoral neck
+  shows, ACL tear hides the kneecap and menisci; share links and patient links keep the parts a quick pick hid (they were lost before);
+  a herniated disc on the spine page links to Spine Movement with that disc pressing on its nerve root; Share shows a QR code of the
+  patient link and the pain page's Send shows one of the pain map link; **Larger text** button (AA) in the patient view, the
+  Display panel and the pain page (remembered in this browser). New quick picks and views are for doctor review.
 - v0.18.0-preview: Where does it hurt? gets Undo and Redo arrows (one step per spot, stroke, removal or Clear all).
 - v0.19.0-preview: Undo and Redo arrows at the top left on every screen. On the pain page they moved to the top left on phones too; the leg, hand, shoulder, spine and head pages get them in Injury mode (one step per injury added, moved, removed or cleared; Ctrl+Z and Ctrl+Shift+Z work). They replace the old "Undo last" button in the injury panel.
 - v0.16.0-preview: **Where does it hurt?** (`pain.html`): patients mark pain spots and areas on a 3D body, with level, kind
