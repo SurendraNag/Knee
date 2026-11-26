@@ -33,13 +33,13 @@ void main() {
     acc += texture2D(uSmall, s / uSmallPx) * w; wsum += w;
   }
   vec4 blur = acc / wsum;
-  float m = 1.0 - smoothstep(0.72, 1.0, d);
+  float m = 1.0 - smoothstep(0.8, 1.0, d);
   gl_FragColor = mix(orig, blur, m);
 }`;
 
 // The regions, per model (centre and half-size of a box around the genitals, in that model's units)
 export const REGIONS = {
-  bodyMale: { c: [0, 0.83, 0.055], r: [0.078, 0.098, 0.085] },
+  bodyMale: { c: [0, 0.825, 0.06], r: [0.08, 0.105, 0.095] },
   bodyFemale: { c: [0, 0.83, 0.03], r: [0.058, 0.075, 0.07] },
   leg: { c: [5.4, 36.8, 8], r: [2.2, 7.4, 5.6] },
   spine: { c: [0, -15.5, 13.2], r: [5, 4.6, 4.8] },
@@ -104,7 +104,7 @@ export function createModesty(renderer, { region, active = () => true, occluders
     }
     if (x1 < 0 || y1 < 0 || x0 > W || y0 > H) return null;
     // the ellipse inside the box's outline, grown so it covers the corners of the shape too
-    return { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, rx: ((x1 - x0) / 2) * 1.08, ry: ((y1 - y0) / 2) * 1.08 };
+    return { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, rx: ((x1 - x0) / 2) * 1.15, ry: ((y1 - y0) / 2) * 1.15 };
   }
 
   // Blur the region of what is already drawn on the canvas.
