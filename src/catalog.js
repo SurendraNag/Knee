@@ -21,7 +21,8 @@ export const PAGES = [
 ];
 export const pageOf = (limb) => PAGES.find((p) => p.limb === limb);
 
-const G1 = 1, G2 = 2, G3 = 3, SPLIT = 11, BUCKET = 12, FLAP = 13, WORN = 14, STENOSIS = 15, STRESS = 22, HAIRLINE = 23, DISPLACED = 24, ARTHRITIS = 26, SLIP = 27;
+const G1 = 1, G2 = 2, G3 = 3, SPLIT = 11, BUCKET = 12, FLAP = 13, WORN = 14, STENOSIS = 15, STRESS = 22, HAIRLINE = 23, DISPLACED = 24, ARTHRITIS = 26, SLIP = 27, SHATTERED = 25,
+  STRAIN = 31, CONTUSION = 33, CRUSH = 34, COMPART = 35, CUT = 41, OPENFX = 42, NBRUISE = 51, CLOT = 54;
 
 export const COMMON = [
   // ---- knee and leg (model: right leg, +X toward the inside of the leg, +Z front) ----
@@ -41,6 +42,15 @@ export const COMMON = [
   { key: 'metatarsal-stress-fracture', limb: 'leg', label: 'Stress fracture of the foot', id: 'metatarsal_2', type: STRESS, from: [0.1, 0.7, 0.7], dist: 26, aka: ['march fracture', 'second metatarsal'] },
   { key: 'knee-arthritis', limb: 'leg', label: 'Knee arthritis (inner side)', id: 'femur', type: ARTHRITIS, from: [0.7, 0.1, 0.8], at: [0.78, 0.03, 0.55], dist: 30, also: [{ id: 'tibia', type: ARTHRITIS, from: [0.7, 0.1, 0.8], at: [0.75, 0.97, 0.55] }], aka: ['osteoarthritis', 'knee oa', 'wear and tear', 'worn knee'] },
   { key: 'hip-arthritis', limb: 'leg', label: 'Hip arthritis', id: 'femur', type: ARTHRITIS, from: [0.35, 0.15, 1], at: [0.9, 0.985, 0.5], dist: 32, hide: ['hip_bone', 'hip_capsule', 'iliofemoral_ligament', 'pubofemoral_ligament', 'ischiofemoral_ligament', 'labrum', 'acetabular_cartilage', 'ligamentum_teres'], aka: ['hip osteoarthritis', 'worn hip'] },
+  // soft tissue (v0.23, for doctor review)
+  { key: 'hamstring-strain', limb: 'leg', label: 'Hamstring strain', id: 'biceps_femoris', type: STRAIN, from: [-0.45, 0.1, -1], at: [0.5, 0.55, 0.15], dist: 48, aka: ['pulled hamstring', 'hamstring tear', 'torn hamstring'] },
+  { key: 'calf-strain', limb: 'leg', label: 'Calf muscle strain (tennis leg)', id: 'gastrocnemius_medial', type: STRAIN, from: [0.55, 0.1, -1], at: [0.5, 0.45, 0.15], dist: 40, aka: ['pulled calf', 'calf tear', 'tennis leg'] },
+  { key: 'thigh-bruise', limb: 'leg', label: 'Bruised thigh muscle (dead leg)', id: 'vastus_lateralis', type: CONTUSION, from: [-1, 0.1, 0.45], at: [0.2, 0.45, 0.6], dist: 48, aka: ['dead leg', 'charley horse', 'cork thigh', 'muscle bruise'] },
+  { key: 'compartment-syndrome', limb: 'leg', label: 'Compartment syndrome (front of the shin)', id: 'tibialis_anterior', type: COMPART, from: [-0.35, 0.1, 1], at: [0.5, 0.6, 0.9], dist: 52, aka: ['compartment syndrome', 'fasciotomy', 'swollen tight leg'] },
+  { key: 'crushed-lower-leg', limb: 'leg', label: 'Crushed lower leg', id: 'tibialis_anterior', type: CRUSH, from: [-0.35, 0.1, 1], at: [0.5, 0.5, 0.9], dist: 55, also: [{ id: 'tibia', type: SHATTERED, from: [0.6, 0.1, 1], at: [0.6, 0.45, 0.6] }, { id: 'fibula', type: DISPLACED, from: [-1, 0.1, 0.3], at: [0.5, 0.45, 0.5] }], aka: ['crush injury', 'leg crush', 'crushed leg', 'run over'] },
+  { key: 'open-fracture-shin', limb: 'leg', label: 'Open fracture of the shin', id: 'skin', type: OPENFX, from: [0.35, 0.1, 1], at: [0.62, 0.21, 0.95], dist: 55, also: [{ id: 'tibia', type: DISPLACED, from: [0.35, 0.1, 1], at: [0.5, 0.45, 0.5] }], aka: ['open fracture', 'compound fracture', 'bone through skin'] },
+  { key: 'dvt', limb: 'leg', label: 'Blood clot in a leg vein (DVT)', id: 'popliteal_vein', type: CLOT, from: [0.1, 0.1, -1], dist: 36, aka: ['dvt', 'deep vein thrombosis', 'blood clot', 'clot'] },
+  { key: 'fibular-nerve-injury', limb: 'leg', label: 'Fibular nerve injury (foot drop)', id: 'common_fibular_nerve', type: NBRUISE, from: [-1, 0.1, -0.3], at: [0.5, 0.8, 0.5], dist: 34, aka: ['foot drop', 'peroneal nerve', 'nerve injury'] },
   { key: 'femoral-shaft-fracture', limb: 'leg', label: 'Thigh bone fracture (femoral shaft)', id: 'femur', type: DISPLACED, from: [0.25, 0.1, 1], at: [0.5, 0.5, 0.5], dist: 70, aka: ['broken thigh', 'broken femur', 'femur fracture', 'thighbone'] },
   { key: 'ankle-fracture', limb: 'leg', label: 'Ankle fracture (outer ankle bone)', id: 'fibula', type: DISPLACED, from: [-1, 0.15, 0.35], at: [0.5, 0.06, 0.5], dist: 32, aka: ['broken ankle', 'lateral malleolus', 'fibula fracture', 'weber'] },
 
@@ -64,6 +74,7 @@ export const COMMON = [
   { key: 'skiers-thumb', limb: 'hand', label: "Skier's thumb (thumb UCL tear)", id: 'thumb_ucl', type: G3, from: [0.4, 0.1, 1], dist: 14, aka: ["gamekeeper's thumb", 'thumb sprain'] },
   { key: 'thumb-base-fracture', limb: 'hand', label: 'Thumb fracture at the base (Bennett)', id: 'metacarpal_1', type: DISPLACED, from: [0.6, 0.1, 1], at: [0.5, 0.12, 0.5], dist: 16, aka: ['broken thumb', 'bennett fracture', 'thumb metacarpal'] },
   { key: 'thumb-fracture', limb: 'hand', label: 'Thumb bone fracture (base bone)', id: 'thumb_proximal', type: HAIRLINE, from: [0.6, 0.1, 1], dist: 16, aka: ['broken thumb', 'thumb phalanx', 'fractured thumb'] },
+  { key: 'fingertip-crush', limb: 'hand', label: 'Crushed fingertip', id: 'index_distal', type: SHATTERED, from: [0.1, 0.1, -1], dist: 12, aka: ['crushed finger', 'finger caught in door', 'fingertip injury'] },
   { key: 'tfcc-tear', limb: 'hand', label: 'TFCC tear', id: 'tfcc', type: SPLIT, from: [-1, 0.15, 0.35], dist: 18, aka: ['ulnar wrist pain', 'triangular fibrocartilage'] },
   { key: 'scapholunate-tear', limb: 'hand', label: 'Scapholunate ligament tear', id: 'scapholunate_ligament', type: G3, from: [0, 0.15, -1], dist: 16, aka: ['wrist ligament'] },
 
@@ -79,6 +90,7 @@ export const COMMON = [
   { key: 'spinal-stenosis', limb: 'spine', label: 'Spinal stenosis L4-L5', id: 'disc_l4_l5', type: STENOSIS, joint: 'lowback', xray: true, from: [0.55, 0.75, -0.75], at: [0.5, 0.5, 0.05], dist: 30, also: [{ id: 'l4', type: ARTHRITIS, from: [0.5, 0.15, -1], at: [0.7, 0.2, 0.1] }], aka: ['stenosis', 'narrowing', 'claudication', 'narrow canal'] },
   { key: 'spondylolisthesis', limb: 'spine', label: 'Slipped vertebra L4 on L5 (spondylolisthesis)', id: 'l4', type: SLIP, from: [1, 0.05, 0.1], dist: 40, aka: ['spondylolisthesis', 'slipped vertebra', 'vertebra slipped'] },
   { key: 'facet-arthritis', limb: 'spine', label: 'Facet joint arthritis L4-L5', id: 'l4', type: ARTHRITIS, from: [0.6, 0.15, -1], at: [0.7, 0.2, 0.1], dist: 26, aka: ['facet arthritis', 'spondylosis', 'arthritis of the spine', 'back arthritis'] },
+  { key: 'low-back-strain', limb: 'spine', label: 'Low back muscle strain', id: 'erector_spinae', type: STRAIN, from: [0.35, 0.1, -1], at: [0.35, 0.18, 0.1], dist: 50, aka: ['back strain', 'pulled back muscle', 'lumbago', 'muscle spasm', 'low back pain'] },
   { key: 'rib-fracture', limb: 'spine', label: 'Rib fracture', id: 'ribs', type: DISPLACED, from: [-0.7, 0.1, 0.7], at: [0.12, 0.5, 0.7], dist: 50, aka: ['broken rib', 'cracked rib'] },
   { key: 'pelvic-fracture', limb: 'spine', label: 'Pelvic fracture', id: 'right_hip_bone', type: DISPLACED, from: [-0.2, 0.25, 1], at: [0.65, 0.2, 0.8], dist: 50, aka: ['broken pelvis', 'pubic ramus'] },
   { key: 'si-joint-sprain', limb: 'spine', label: 'Sacroiliac joint sprain', id: 'sacroiliac_ligaments', type: G2, from: [0.3, 0.2, -1], dist: 34, aka: ['si joint'] },

@@ -303,6 +303,13 @@ Each release is tagged (`v0.1.0`, `v0.2.0-preview`, …) and deployed to its own
 
 - v0.20.0-preview: genitals blurred by default on every page that shows them (body, leg and spine skin, pain map,
   saved images, patient and share links), with a clinician-only *Private parts* switch.
+- v0.23.0-preview: panel fixes round 3, soft tissue. Muscles, skin, nerves and blood vessels can now be injured:
+  muscle strain (partial tear), complete tear, bruised muscle, crush damage and compartment syndrome; skin cut, wound over a
+  break (open fracture), graze and skin torn away (degloving); bruised or stretched nerve and nerve cut through; torn blood
+  vessel and blood clot (DVT). Picking one brings back its layer (muscle, skin) or the vessels and nerves. New quick picks:
+  hamstring strain, calf strain, bruised thigh (dead leg), compartment syndrome of the shin, crushed lower leg (crushed
+  muscle, shin bone in several pieces, broken fibula), open fracture of the shin, DVT, fibular nerve injury (foot drop),
+  low back muscle strain and crushed fingertip. All soft tissue injuries and their wording are for doctor review.
 - v0.22.0-preview: panel fixes round 2. Each finger and thumb bone is its own structure (base, middle and tip bone; the
   thumb has a base and a tip bone), so a break goes on the right one; old links that marked a whole finger move the injury to the
   nearest finger bone. Degenerative conditions: a worn (degenerated) disc, a disc bulge narrowing the canal (spinal stenosis),
