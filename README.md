@@ -303,6 +303,13 @@ Each release is tagged (`v0.1.0`, `v0.2.0-preview`, …) and deployed to its own
 
 - v0.20.0-preview: genitals blurred by default on every page that shows them (body, leg and spine skin, pain map,
   saved images, patient and share links), with a clinician-only *Private parts* switch.
+- v0.22.0-preview: panel fixes round 2. Each finger and thumb bone is its own structure (base, middle and tip bone; the
+  thumb has a base and a tip bone), so a break goes on the right one; old links that marked a whole finger move the injury to the
+  nearest finger bone. Degenerative conditions: a worn (degenerated) disc, a disc bulge narrowing the canal (spinal stenosis),
+  a vertebra slipped forward (spondylolisthesis, vertebrae only) and arthritis with bone spurs on any bone (the joint cartilage is
+  worn through at the spot). New quick picks: worn disc L4-L5, spinal stenosis L4-L5 (disc bulge plus bone spurs on L4), slipped
+  vertebra L4 on L5, facet joint arthritis L4-L5, knee arthritis (inner side, thigh and shin bone) and hip arthritis.
+  A quick pick can now add more than one part (`also` in `src/catalog.js`). All new conditions and their wording are for doctor review.
 - v0.21.0-preview: fixes from the simulated doctor and patient panel (26 Nov 2026). Calmer patient wording
   ("Complete tear (grade III)" instead of "Grade III sprain", "Break in several pieces" instead of "Shattered break", no promise
   that a sprain heals); new quick picks: thigh bone (femoral shaft) fracture, ankle fracture (outer ankle bone), thumb fracture at the

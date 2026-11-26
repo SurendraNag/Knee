@@ -10,6 +10,8 @@ export const T = {
   G1: 1, G2: 2, G3: 3, // ligament / tendon
   SPLIT: 11, BUCKET: 12, FLAP: 13, // meniscus
   BRUISE: 21, STRESS: 22, HAIRLINE: 23, DISPLACED: 24, SHATTERED: 25, // bone
+  ARTHRITIS: 26, SLIP: 27, // bone: worn joint edge with bone spurs; a vertebra slipped forward (spondylolisthesis)
+  WORN: 14, STENOSIS: 15, // spinal disc: worn and flattened; broad bulge narrowing the canal
 };
 
 export const INJURY_TYPES = {
@@ -38,6 +40,8 @@ export const INJURY_TYPES = {
   spinaldisc: [
     { type: T.FLAP, label: 'Herniated disc', sub: 'Soft centre pushed out backward', say: (s) => `The ${s} is herniated ("slipped"): its soft centre has pushed out through a tear in the tough outer ring, backward toward the spinal canal, where it can press on a nerve root or the spinal cord.` },
     { type: T.SPLIT, label: 'Annular tear', sub: 'Crack in the outer ring', say: (s) => `The outer ring of the ${s} has a crack. It can be painful on its own and is often the first step before a herniation.` },
+    { type: T.WORN, label: 'Worn disc (degeneration)', sub: 'Dried out, flatter', say: (s) => `The ${s} has worn with time: it has dried out and lost height, so it cushions less and the joints behind it take more load. This is very common with age and does not always cause pain.` },
+    { type: T.STENOSIS, label: 'Bulge narrowing the canal (stenosis)', sub: 'Broad bulge backward', say: (s) => `The ${s} bulges broadly backward into the spinal canal. Together with thickened ligaments and bone spurs this narrows the space for the nerves (spinal stenosis), which can cause leg pain or heaviness when walking that eases on sitting or bending forward.` },
   ],
   jawdisc: [
     { type: T.FLAP, label: 'Displaced disc', sub: 'Slipped forward', say: (s) => `The ${s} has slipped forward off the top of the jaw bone. The jaw clicks when the disc pops back in on opening, or locks when it cannot.` },
@@ -49,6 +53,8 @@ export const INJURY_TYPES = {
     { type: T.SHATTERED, label: 'Break in several pieces', sub: 'Comminuted fracture', say: (s) => `The ${s} is broken into several pieces at this spot (a comminuted fracture).` },
     { type: T.BRUISE, label: 'Bone bruise', sub: 'Soft discoloured patch', say: (s) => `The ${s} is bruised inside: bleeding and swelling in the bone, without a break.` },
     { type: T.STRESS, label: 'Stress fracture', sub: 'Faint line, slight swelling', say: (s) => `A small crack in the ${s} from repeated strain, with slight swelling around it.` },
+    { type: T.ARTHRITIS, label: 'Arthritis (bone spurs)', sub: 'Worn joint edge, bony lumps', say: (s) => `The joint surface of the ${s} is worn here, and the bone has grown small lumps (bone spurs) at the edge. This is osteoarthritis; it can cause stiffness and aching.` },
+    { type: T.SLIP, only: 'vertebra', label: 'Slipped forward (spondylolisthesis)', sub: 'Vertebra shifted over the one below', say: (s) => `The ${s} has slipped forward over the vertebra below it (spondylolisthesis), which can narrow the space for the nerves.` },
   ],
 };
 export const injuryKind = (id) => {
@@ -58,7 +64,7 @@ export const injuryKind = (id) => {
 export const typeInfo = (kind, type) => INJURY_TYPES[kind].find((t) => t.type === type);
 // The injury types offered for one structure: a structure can narrow its kind's list with `injuryTypes` (for example, no
 // stress fractures or bone bruises on skull bones or teeth). Saved injuries of other types still render through typeInfo.
-export const injuryTypesFor = (id) => { const k = injuryKind(id), only = STRUCTURES[id]?.injuryTypes; return k ? INJURY_TYPES[k].filter((t) => !only || only.includes(t.type)) : []; };
+export const injuryTypesFor = (id) => { const k = injuryKind(id), only = STRUCTURES[id]?.injuryTypes; return k ? INJURY_TYPES[k].filter((t) => (!only || only.includes(t.type)) && (!t.only || STRUCTURES[id]?.[t.only])) : []; };
 
 // ---------------- GLSL ----------------
 const NOISE = /* glsl */ `
@@ -93,6 +99,9 @@ for (int i = 0; i < ${MAX}; i++) { if (i >= uInjN) break;
     }
   }
   if (ty == 22) { float d = length(position - p); injPos += objectNormal * 0.14 * exp(-d * d / 0.35); }
+  if (ty == 26) { float d = length(position - p); float f = 1.0 - smoothstep(0.4, 1.4, d);
+    float bump = smoothstep(0.45, 0.8, inz(position * 3.2 + uInjB[i].w)); injPos += objectNormal * (0.1 + 0.5 * bump) * f; }
+  if (ty == 27) { injPos += vec3(0.0, 0.0, 0.75); }
 }
 `;
 const BONE_FRAG = /* glsl */ `
@@ -121,6 +130,13 @@ const BONE_FRAG = /* glsl */ `
       }
       col = mix(col, vec3(0.16, 0.08, 0.06), line * (ty == 22 ? 0.55 : 0.92));
       if (ty == 22) col = mix(col, vec3(0.78, 0.45, 0.42), 0.35 * exp(-dot(rel, rel) / 0.3));
+    }
+    if (ty == 26) {
+      float d = length(rel); float f = 1.0 - smoothstep(0.4, 1.5, d);
+      #ifdef INJ_CART
+      if (d + (inz(vIP * 2.5 + seed) - 0.5) * 0.6 < 1.15) discard; // the cartilage is worn through here
+      #endif
+      col = mix(col, vec3(0.80, 0.72, 0.52), f * 0.55 * (0.6 + 0.4 * inz(vIP * 6.0)));
     }
     if (ty == 24) {
       float sd = dot(rel, uInjB[i].xyz) + (inz(vIP * 2.2 + seed) - 0.5) * 0.5;
@@ -172,6 +188,8 @@ for (int i = 0; i < ${MAX}; i++) { if (i >= uInjN) break;
   if (ty == 12) { float env = 1.0 - smoothstep(0.9, 1.7, ad);
     float inner = step(0.5, aRad);
     injPos += (-aSide * 0.85 + vec3(0.0, 0.22, 0.0)) * env * inner; }
+  if (ty == 14) { injPos.y = cen.y + (injPos.y - cen.y) * 0.55; injPos += aSide * 0.12 * (1.0 - aRad); }
+  if (ty == 15) { float back = smoothstep(0.1, 0.8, -aSide.z); injPos += aSide * 0.85 * back * (1.0 - aRad * 0.7); }
   if (ty == 13) { bool toward = uFlap.w > 0.5;
     if (du > 0.0 && du < 1.1 && (toward || aRad > 0.42)) {
       float lift = (1.0 - du / 1.1); float r = toward ? 1.0 : smoothstep(0.42, 1.0, aRad);
@@ -192,6 +210,8 @@ const SWEEP_FRAG = /* glsl */ `
     if (ty == 3) { if (ad < 0.32) discard; col = mix(col, vec3(0.7, 0.3, 0.28), (1.0 - smoothstep(0.32, 1.0, ad)) * 0.75); }
     if (ty == 11) { if (ad < 0.09 && vIR > 0.22) discard; col = mix(col, vec3(0.7, 0.45, 0.4), (1.0 - smoothstep(0.0, 0.25, ad)) * 0.35 * step(0.2, vIR)); }
     if (ty == 12) { if (ad < 1.55 && abs(vIR - 0.5) < 0.05) discard; }
+    if (ty == 14) col = mix(col, vec3(0.55, 0.48, 0.36), 0.75);
+    if (ty == 15) col = mix(col, vec3(0.78, 0.5, 0.45), 0.3);
     if (ty == 13) { if ((du > 0.0 && du < 1.1 && abs(vIR - 0.42) < 0.04) || (abs(du) < 0.035 && vIR > 0.42)) discard; }
   }
   if (!gl_FrontFacing) col *= vec3(0.75, 0.55, 0.5);
@@ -199,7 +219,7 @@ const SWEEP_FRAG = /* glsl */ `
 }
 `;
 
-function patchMaterial(mat, uniforms, family) {
+function patchMaterial(mat, uniforms, family, cartilage = false) {
   const prev = mat.onBeforeCompile;
   mat.onBeforeCompile = (sh, r) => {
     if (prev) prev(sh, r);
@@ -209,7 +229,7 @@ function patchMaterial(mat, uniforms, family) {
       sh.vertexShader = sh.vertexShader
         .replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>\n${BONE_VERT_NORMAL}`)
         .replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed = injPos; vIP = position;');
-      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>\n${NOISE}\n${UNI}`)
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>\n${cartilage ? '#define INJ_CART 1' : ''}\n${NOISE}\n${UNI}`)
         .replace('#include <color_fragment>', `#include <color_fragment>\n${BONE_FRAG}`);
     } else {
       sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>\n${SWEEP_VERT}\ntransformed = injPos; vIP = position;`);
@@ -218,7 +238,7 @@ function patchMaterial(mat, uniforms, family) {
     }
   };
   const prevKey = mat.customProgramCacheKey?.() || '';
-  mat.customProgramCacheKey = () => `${prevKey}-inj-${family}`;
+  mat.customProgramCacheKey = () => `${prevKey}-inj-${family}${cartilage ? "-cart" : ""}`;
   mat.needsUpdate = true;
 }
 
@@ -288,7 +308,7 @@ export class InjuryManager {
       patchMaterial(mesh.material, uniforms, family);
       const linked = [mesh];
       // a cartilage mesh shared by several bones (foot) follows the first bone that claims it
-      for (const c of CARTILAGE_OF[id] || []) if (meshes[c] && !linkedCart.has(c)) { linkedCart.add(c); patchMaterial(meshes[c].material, uniforms, 'bone'); linked.push(meshes[c]); }
+      for (const c of CARTILAGE_OF[id] || []) if (meshes[c] && !linkedCart.has(c)) { linkedCart.add(c); patchMaterial(meshes[c].material, uniforms, 'bone', true); linked.push(meshes[c]); }
       this.targets[id] = { kind, family, uniforms, linked };
     }
   }

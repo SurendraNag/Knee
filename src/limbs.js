@@ -67,14 +67,15 @@ const CONFIGS = {
     cubeLabels: { front: 'Palm', back: 'Back', inside: 'Little', outside: 'Thumb' },
     cartilageOf: {
       radius: ['wrist_cartilage'], scaphoid: ['wrist_cartilage'], lunate: ['wrist_cartilage'], capitate: ['wrist_cartilage'],
-      index_bones: ['finger_cartilage'], middle_bones: ['finger_cartilage'], ring_bones: ['finger_cartilage'], little_bones: ['finger_cartilage'], thumb_bones: ['finger_cartilage'],
+      thumb_proximal: ['finger_cartilage'], thumb_distal: ['finger_cartilage'], index_proximal: ['finger_cartilage'], index_middle: ['finger_cartilage'], index_distal: ['finger_cartilage'], middle_proximal: ['finger_cartilage'], middle_middle: ['finger_cartilage'], middle_distal: ['finger_cartilage'], ring_proximal: ['finger_cartilage'], ring_middle: ['finger_cartilage'], ring_distal: ['finger_cartilage'], little_proximal: ['finger_cartilage'], little_middle: ['finger_cartilage'], little_distal: ['finger_cartilage'],
     },
     spread: {
       radius: [0.4, -1.6, 0], ulna: [-0.4, -1.6, 0], tfcc: [-0.2, -0.6, 0],
       scaphoid: [0.5, 0, 0], lunate: [0, 0, 0], triquetrum: [-0.5, 0, 0], pisiform: [-0.6, 0, 0.5],
       trapezium: [0.7, 0.7, 0], trapezoid: [0.3, 0.8, 0], capitate: [0, 0.8, 0], hamate: [-0.4, 0.8, 0],
       metacarpal_1: [1.0, 1.4, 0], metacarpal_2: [0.4, 1.6, 0], metacarpal_3: [0, 1.6, 0], metacarpal_4: [-0.4, 1.6, 0], metacarpal_5: [-0.8, 1.5, 0],
-      thumb_bones: [1.4, 2.2, 0], index_bones: [0.6, 2.6, 0], middle_bones: [0, 2.6, 0], ring_bones: [-0.6, 2.5, 0], little_bones: [-1.1, 2.3, 0],
+      
+      thumb_proximal: [1.4, 2.2, 0], thumb_distal: [1.75, 2.7, 0], index_proximal: [0.6, 2.6, 0], index_middle: [0.6, 3.1, 0], index_distal: [0.6, 3.6, 0], middle_proximal: [0, 2.6, 0], middle_middle: [0, 3.1, 0], middle_distal: [0, 3.6, 0], ring_proximal: [-0.6, 2.5, 0], ring_middle: [-0.6, 3.0, 0], ring_distal: [-0.6, 3.5, 0], little_proximal: [-1.1, 2.3, 0], little_middle: [-1.1, 2.8, 0], little_distal: [-1.1, 3.3, 0],
       scapholunate_ligament: [0.25, 0, 0], thumb_ucl: [1.2, 1.8, 0],
     },
     modelledNote: 'Cartilage, wrist and finger ligaments, finger extensor tendons and nerves are modelled.',
