@@ -1,116 +1,63 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="home">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-<title>Leg Explainer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Anatomy Explainer</title>
 <meta name="theme-color" content="#0b0f14" />
+<meta name="description" content="Interactive 3D anatomy for explaining injuries to patients. Educational, not for diagnosis." />
+<script>
+  // Links made before the home page existed opened the leg (share links, patient links, clinic-website embeds): send them on.
+  (function () {
+    var q = location.search, h = location.hash;
+    if (/^#c=/.test(h) || /[?&](patient|embed|side|sel|region|view|cam|joint|tissues|xray|labels|peel|spread|hide|vessels|zoom|iso|pick|find)=?/.test(q)) location.replace('./leg.html' + q + h);
+  })();
+</script>
 </head>
 <body>
-<div id="app">
-  <canvas id="c"></canvas>
-
-  <header class="topbar">
-    <div class="brand">Leg Explainer <span class="side" role="group" aria-label="Which leg"><button data-side="right" class="on" aria-pressed="true">Right leg</button><button data-side="left" aria-pressed="false">Left leg</button></span> <span id="version" class="ver"></span></div>
+<div class="home-wrap">
+  <header class="home-top">
+    <div class="brand">Anatomy Explainer <span id="version" class="ver"></span></div>
     <div class="disclaimer" role="note">Educational demo, not for diagnosis</div>
   </header>
 
-  <nav class="modes" aria-label="Mode">
-    <button class="on" data-mode="explore">Explore</button>
-    <button data-mode="injury">Injury</button>
-    <select id="part-nav" aria-label="Other body parts"></select>
-  </nav>
+  <main>
+    <section class="hero">
+      <h1>Show your patient what happened, in 3D</h1>
+      <p class="sub">Pick an injury or a body part, turn the model to the best view, then send your patient a view-only link.</p>
+      <div class="search home-search">
+        <input id="find" type="search" placeholder="Search, e.g. rotator cuff, ACL tear, slipped disc, kneecap" autocomplete="off" spellcheck="false" enterkeyhint="search" aria-label="Search body parts, structures and injuries" />
+        <ul id="find-results" class="results" role="listbox" hidden></ul>
+      </div>
+    </section>
 
-  <div class="toolbar">
-    <div class="group views" role="group" aria-label="Views">
-      <button data-view="front">Front</button>
-      <button data-view="back">Back</button>
-      <button data-view="inside">Inside</button>
-      <button data-view="outside">Outside</button>
-      <button id="reset" title="Reset view">Reset</button>
-    </div>
-    <div class="group">
-      <select id="region" aria-label="Go to a part of the leg"></select>
-    </div>
-    <div class="group more">
-      <button id="xray" aria-pressed="false" class="toggle">See through bone</button>
-      <button id="labels" aria-pressed="false" class="toggle">Labels</button>
-      <button id="vessels" aria-pressed="true" class="toggle" title="Show blood vessels and nerves">Vessels and nerves</button>
-    </div>
-    <div class="group peel">
-      <label for="peel">Layers</label>
-      <input id="peel" type="range" min="0" max="4" step="1" value="2" />
-      <span id="peel-label" class="peel-label"></span>
-    </div>
-    <div class="group spread more">
-      <label for="spread">Spread apart</label>
-      <input id="spread" type="range" min="0" max="1" step="0.01" value="0" />
-    </div>
-    <div class="group more">
-      <select id="picker" aria-label="Find a structure"></select>
-    </div>
-    <div class="group">
-      <button id="share" title="Copy a link that reopens this exact view and these injuries">Share</button>
-      <button id="snap" title="Download a picture of this view">Save image</button>
-      <button id="cases" title="Save this view and its injuries under a name on this device">Cases</button>
-      <button id="more" class="phone-only" aria-expanded="false">More</button>
-    </div>
-  </div>
+    <section aria-labelledby="parts-h">
+      <h2 id="parts-h" class="sr">Body parts</h2>
+      <div id="tiles" class="tiles"></div>
+    </section>
 
-  <section id="info" class="info hidden" aria-live="polite">
-    <button id="info-close" class="close" aria-label="Close">×</button>
-    <div id="info-group" class="eyebrow"></div>
-    <h2 id="info-name"></h2>
-    <p id="info-what"></p>
-    <h3>Common injuries</h3>
-    <ul id="info-injuries"></ul>
-    <p id="info-note" class="note" hidden>Simplified shape in this version.</p>
-    <div class="actions">
-      <button id="isolate" aria-pressed="false">Show only this</button>
-      <button id="zoom-in">Zoom in</button>
-      <button id="zoom-out">Zoom out</button>
-      <button id="zoom-reset">Reset view</button>
-    </div>
-  </section>
+    <section class="how" aria-labelledby="pain-h">
+      <h2 id="pain-h">For patients: where does it hurt?</h2>
+      <p>Patients can mark the spots and areas where they feel pain on a 3D body, rate how bad it is, and send it to you as a link or a picture.
+        <a href="./pain.html">Open Where does it hurt?</a> or send your patients that link.</p>
+    </section>
 
-  <section id="injury" class="info injury hidden" aria-live="polite">
-    <div class="steps"><span data-step="1">1 Structure</span><span data-step="2">2 Injury</span><span data-step="3">3 Spot</span></div>
-    <div id="inj-step1"><p class="lead">Tap a ligament, tendon, meniscus, labrum or bone, or pick one:</p>
-      <select id="inj-picker" aria-label="Pick a structure"></select></div>
-    <div id="inj-step2" hidden><div class="eyebrow" id="inj-target-group"></div><h2 id="inj-target"></h2>
-      <div id="inj-types" class="types"></div>
-      <div class="actions"><button id="inj-zoom-in">Zoom in</button><button id="inj-zoom-out">Zoom out</button><button id="inj-zoom-reset">Reset view</button><button id="inj-change">Change structure</button></div></div>
-    <div id="inj-step3" hidden><p class="lead" id="inj-tap-msg"></p><div class="actions"><button id="inj-cancel">Back</button></div></div>
-    <div id="inj-listwrap" hidden>
-      <h3>Injuries shown</h3>
-      <ol id="inj-list"></ol>
-      <div class="actions"><button id="inj-undo">Undo last</button><button id="inj-clear" class="danger">Clear all</button></div>
-    </div>
-  </section>
-  <section id="dlg" class="info dlg hidden" role="dialog" aria-modal="false" aria-labelledby="dlg-title">
-    <button id="dlg-close" class="close" aria-label="Close">×</button>
-    <h2 id="dlg-title"></h2>
-    <div id="dlg-body"></div>
-  </section>
-  <div id="toast" class="toast" role="status" hidden></div>
-  <svg id="leaders"></svg>
-  <div id="labels-layer"></div>
-  <div id="tags"></div>
-  <div id="cube-wrap" title="Tap a face to turn the leg">
-    <div id="cube">
-      <div class="face f-front" data-face="front"><span>Front</span></div>
-      <div class="face f-back" data-face="back"><span>Back</span></div>
-      <div class="face f-in" data-face="inside"><span>Inside</span></div>
-      <div class="face f-out" data-face="outside"><span>Outside</span></div>
-      <div class="face f-top" data-face="top"><span>Top</span></div>
-      <div class="face f-bottom" data-face="bottom"><span>Bottom</span></div>
-    </div>
-  </div>
-  <div class="credit">Bones, muscles, vessels and skin: <a href="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html" target="_blank" rel="noopener">BodyParts3D</a>, © The Database Center for Life Science, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> (cropped and smoothed). Cartilage, ligaments, menisci, nerves and most tendons are modelled.</div>
-  <div class="hint">Drag to rotate · pinch or scroll to zoom · tap a structure · double-tap to zoom in</div>
-  <div id="fps" class="fps" hidden></div>
-  <div id="loading"><div class="spinner"></div>Loading anatomy…</div>
+    <section class="how" aria-labelledby="how-h">
+      <h2 id="how-h">How it works</h2>
+      <ol>
+        <li><b>Pick.</b> Tap a common injury, or open a body part and tap Injury.</li>
+        <li><b>Show.</b> Turn and zoom the model. Use Display for see-through bone, labels and layers.</li>
+        <li><b>Send.</b> Share gives a view-only link for your patient. Nothing is stored on a server and the link holds no patient details.</li>
+      </ol>
+    </section>
+  </main>
+
+  <footer class="home-foot">
+    <p>Anatomy: <a href="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html" target="_blank" rel="noopener">BodyParts3D</a>, © The Database Center for Life Science, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> (modified).
+      Female body: organs from the <a href="https://humanatlas.io" target="_blank" rel="noopener">Human Reference Atlas</a> (HuBMAP) via open-anatomy-3d, and the pelvis and legs from the <a href="https://doi.org/10.56902/COB.vh.2022.0" target="_blank" rel="noopener">Visible Human Female</a> lower-limb models (Center for Orthopaedic Biomechanics, University of Denver), all CC BY 4.0. Cartilage, many ligaments and some nerves are modelled.
+      Injuries outside the knee are a preview, waiting for a doctor to review them.</p>
+  </footer>
 </div>
-<script type="module" src="/src/main.js"></script>
+<script type="module" src="/src/home.js"></script>
 </body>
 </html>

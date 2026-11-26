@@ -18,7 +18,6 @@
   <nav class="modes" aria-label="Mode">
     <button class="on" data-mode="explore">Explore</button>
     <button data-mode="injury">Injury</button>
-    <select id="part-nav" aria-label="Other body parts"></select>
   </nav>
 
   <div class="toolbar">
@@ -29,32 +28,42 @@
       <button data-view="inside">Body side</button>
       <button id="reset" title="Reset view">Reset</button>
     </div>
-    <div class="group">
+    <div class="group goto">
       <select id="region" aria-label="Go to a part of the shoulder or arm"></select>
     </div>
-    <div class="group more">
+    <div class="group find">
+      <input id="find" type="search" placeholder="Find a part or injury" autocomplete="off" spellcheck="false" enterkeyhint="search" aria-label="Find a structure or injury, on this page or another" />
+      <ul id="find-results" class="results" role="listbox" hidden></ul>
+    </div>
+    <div class="group main-actions">
+      <button id="display" aria-expanded="false" aria-controls="display-panel">Display</button>
+      <button id="share" class="primary" title="Send a view-only link to a patient, or copy a link that reopens this exact view">Share</button>
+      <button id="overflow" aria-expanded="false" aria-controls="overflow-menu" aria-label="More: save image, cases" title="Save image, cases">⋯</button>
+      <button id="pt-labels" class="patient-only" aria-pressed="false">Labels</button>
+    </div>
+  </div>
+
+  <section id="display-panel" class="popover hidden" aria-label="Display">
+    <div class="pop-head"><b>Display</b><button id="display-close" class="close" aria-label="Close">×</button></div>
+    <div class="pop-row">
       <button id="xray" aria-pressed="false" class="toggle">See through bone</button>
       <button id="labels" aria-pressed="false" class="toggle">Labels</button>
       <button id="vessels" aria-pressed="true" class="toggle" title="Show blood vessels and nerves">Vessels and nerves</button>
+      <button id="show" class="toggle" title="Show one joint only, or only some tissues (for example bones and ligaments)">One joint or tissue…</button>
     </div>
-    <div class="group peel">
+    <div class="pop-row peel">
       <label for="peel">Layers</label>
       <input id="peel" type="range" min="0" max="4" step="1" value="2" />
       <span id="peel-label" class="peel-label"></span>
     </div>
-    <div class="group spread more">
+    <div class="pop-row spread">
       <label for="spread">Spread apart</label>
       <input id="spread" type="range" min="0" max="1" step="0.01" value="0" />
     </div>
-    <div class="group more">
-      <select id="picker" aria-label="Find a structure"></select>
-    </div>
-    <div class="group">
-      <button id="share" title="Copy a link that reopens this exact view and these injuries">Share</button>
-      <button id="snap" title="Download a picture of this view">Save image</button>
-      <button id="cases" title="Save this view and its injuries under a name on this device">Cases</button>
-      <button id="more" class="phone-only" aria-expanded="false">More</button>
-    </div>
+  </section>
+  <div id="overflow-menu" class="popover menu hidden" role="menu">
+    <button id="snap" role="menuitem" title="Download a picture of this view">Save image</button>
+    <button id="cases" role="menuitem" title="Save this view and its injuries under a name on this device">Cases</button>
   </div>
 
   <section id="info" class="info hidden" aria-live="polite">
@@ -74,12 +83,14 @@
   </section>
 
   <section id="injury" class="info injury hidden" aria-live="polite">
+    <div class="pt-head patient-only"><b id="pt-sum"></b><button id="pt-toggle" class="mini" aria-expanded="true">Hide</button></div>
+    <p class="pt-note patient-only">Your clinician marked this on a model to explain it. It is an illustration, not a diagnosis. Tap a number or a part to read about it.</p>
     <div class="steps"><span data-step="1">1 Structure</span><span data-step="2">2 Injury</span><span data-step="3">3 Spot</span></div>
-    <div id="inj-step1"><p class="note preview">Preview: shoulder and elbow injuries are waiting for a doctor to review them.</p><p class="lead">Tap a ligament, tendon, the labrum or a bone, or pick one:</p>
+    <div id="inj-step1"><div id="inj-common" class="common" aria-label="Common injuries"></div><p class="note preview">Preview: shoulder and elbow injuries are waiting for a doctor to review them.</p><p class="lead">Tap a ligament, tendon, the labrum or a bone, or pick one:</p>
       <select id="inj-picker" aria-label="Pick a structure"></select></div>
     <div id="inj-step2" hidden><div class="eyebrow" id="inj-target-group"></div><h2 id="inj-target"></h2>
       <div id="inj-types" class="types"></div>
-      <div class="actions"><button id="inj-zoom-in">Zoom in</button><button id="inj-zoom-out">Zoom out</button><button id="inj-zoom-reset">Reset view</button><button id="inj-change">Change structure</button></div></div>
+      <div class="actions"><button id="inj-zoom-in">Zoom in</button><button id="inj-zoom-out">Zoom out</button><button id="inj-zoom-reset">Reset view</button><button id="inj-move" hidden>Move the tag</button><button id="inj-change">Change structure</button></div></div>
     <div id="inj-step3" hidden><p class="lead" id="inj-tap-msg"></p><div class="actions"><button id="inj-cancel">Back</button></div></div>
     <div id="inj-listwrap" hidden>
       <h3>Injuries shown</h3>

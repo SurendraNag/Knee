@@ -13,6 +13,8 @@ THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 import { APP_VERSION } from './version.js';
 import { snapshot, injuryList, encode, decode, listCases, saveCase, deleteCase, renameCase } from './cases.js';
+import { COMMON } from './catalog.js';
+import { mountSearch, mountNav } from './search.js';
 export { APP_VERSION };
 const $ = (s) => document.querySelector(s);
 // ?patient=1: view-only page for patients (no editing of injuries); ?embed=1: inside a doctor's website (iframe)
@@ -103,7 +105,7 @@ function setSide(side) {
     const o = (SIDE_TEXT[id] ||= { name: s.name, what: s.what, short: s.short });
     s.name = sideWords(o.name); s.what = sideWords(o.what); if (o.short) s.short = sideWords(o.short);
   }
-  document.querySelectorAll('#picker option[value]').forEach((op) => { if (op.value && STRUCTURES[op.value]) op.textContent = STRUCTURES[op.value].name; });
+  document.querySelectorAll('#inj-picker option[value]').forEach((op) => { if (op.value && STRUCTURES[op.value]) op.textContent = STRUCTURES[op.value].name; });
   document.querySelectorAll('[data-side]').forEach((b) => { const on = b.dataset.side === side; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
   // the cube's +X face shows whichever view looks from +X (leg: inside; hand: thumb side); mirrored for the left side
   const fi = document.querySelector('#cube .f-in'), fo = document.querySelector('#cube .f-out');
@@ -408,7 +410,8 @@ function select(id, { glass = true } = {}) {
   setHighlight(id);
   state.selected = id; state.glass = glass;
   const panel = $('#info');
-  if (!id) { panel.classList.add('hidden'); $('#picker').value = ''; state.isolate = false; applyVisibility(); frameFreeArea(); return; }
+  document.body.classList.toggle('pt-reading', PATIENT && !!id);
+  if (!id) { panel.classList.add('hidden'); state.isolate = false; applyVisibility(); frameFreeArea(); return; }
   revealFor(id);
   const info = STRUCTURES[id];
   $('#info-group').textContent = info.group;
@@ -417,8 +420,8 @@ function select(id, { glass = true } = {}) {
   $('#info-injuries').innerHTML = info.injuries.map((t) => `<li>${t}</li>`).join('');
   $('#info-note').hidden = !info.simplified;
   state.isolate = false; $('#isolate').setAttribute('aria-pressed', 'false');
-  $('#picker').value = id;
   panel.classList.remove('hidden');
+  if (PATIENT && state.mode === 'injury' && innerWidth <= 760) setPatientCard(false);
   frameFreeArea();
   // make sure the structure is visible, and turn everything else to glass
   if (info.layer < state.peel) { state.peel = info.layer; $('#peel').value = String(state.peel); }
@@ -443,7 +446,7 @@ canvas.addEventListener('pointerup', (e) => {
   lastTap = dbl ? { t: 0 } : { t: now, x: e.clientX, y: e.clientY };
   clearTimeout(pendingTap);
   if (dbl && !(state.mode === 'injury' && state.step === 3 && !PATIENT)) return zoomToTap();
-  if (state.mode === 'injury') return PATIENT ? undefined : injuryTap();
+  if (state.mode === 'injury' && !PATIENT) return injuryTap();
   // a single tap selects, but wait a moment in case it is the first half of a double-tap
   const hit = pickHit(), id = hit ? hit.object.userData.id : null;
   pendingTap = setTimeout(() => select(id), 260);
@@ -525,10 +528,12 @@ function setStep(n) {
   $('#inj-step1').hidden = n !== 1; $('#inj-step2').hidden = n !== 2; $('#inj-step3').hidden = n !== 3;
   document.querySelectorAll('.steps span').forEach((sp) => { const k = Number(sp.dataset.step); sp.classList.toggle('on', k === n); sp.classList.toggle('done', k < n); });
   if (n === 1) { state.injTarget = null; setHighlight(null); $('#inj-picker').value = ''; }
+  if (n !== 2) $('#inj-move').hidden = true;
   renderInjuryList();
   frameFreeArea();
 }
 function chooseInjTarget(id) {
+  $('#inj-move').hidden = true;
   state.injTarget = id; setHighlight(id); ensureVisible(id);
   const info = STRUCTURES[id], kind = injuryKind(id);
   $('#inj-target-group').textContent = info.group;
@@ -550,10 +555,20 @@ function renderInjuryList() {
   $('#inj-listwrap').hidden = list.length === 0;
   $('#inj-list').innerHTML = list.map((inj, i) => { const s = injurySentence(inj);
     return `<li><span class="num">${i + 1}</span><span><b>${s.title}.</b> ${s.text}</span><button class="rm" data-rm="${i}" aria-label="Remove injury ${i + 1}">×</button></li>`; }).join('');
-  $('#inj-list').querySelectorAll('[data-rm]').forEach((b) => b.addEventListener('click', () => { injuries.remove(Number(b.dataset.rm)); renderInjuryList(); }));
+  $('#inj-list').querySelectorAll('[data-rm]').forEach((b) => b.addEventListener('click', () => { injuries.remove(Number(b.dataset.rm)); state.lastQuick = null; $('#inj-move').hidden = true; renderInjuryList(); }));
   // tags
   const tags = $('#tags');
-  tags.innerHTML = list.map((_, i) => `<div class="tag">${i + 1}</div>`).join('');
+  tags.innerHTML = list.map((_, i) => `<div class="tag"${PATIENT ? ` role="button" tabindex="0" aria-label="Read about injury ${i + 1}"` : ''}>${i + 1}</div>`).join('');
+  if (PATIENT) {
+    const n = list.length;
+    $('#pt-sum').textContent = n ? `${n} ${n === 1 ? 'injury' : 'injuries'} marked by your clinician` : '';
+    $('#injury').classList.toggle('pt-empty', !n);
+    [...tags.children].forEach((t, i) => t.addEventListener('click', () => {
+      setPatientCard(true);
+      const li = $('#inj-list').children[i]; li?.classList.add('flash'); setTimeout(() => li?.classList.remove('flash'), 1600); li?.scrollIntoView({ block: 'nearest' });
+      if (innerWidth > 760) select(list[i].id);
+    }));
+  }
   frameFreeArea();
 }
 const _tp = new THREE.Vector3();
@@ -569,20 +584,100 @@ function updateTags() {
     el.style.display = _tp.z < 1 ? '' : 'none';
   });
 }
+// The injury picker, grouped by part of the body (the nearest "Go to" region) and then by tissue
+const TISSUE_PLURAL = { Bone: 'bones', Ligament: 'ligaments', Tendon: 'tendons', Meniscus: 'menisci', Labrum: 'labrum', Disc: 'discs' };
+function groupedInjuryOptions() {
+  const regs = Object.entries(REGIONS).filter(([k, r]) => k !== CFG.home.region && !/\(from /.test(r.label));
+  const groups = new Map();
+  for (const [id, s] of Object.entries(STRUCTURES)) {
+    if (!injuryKind(id) || !meshes[id]) continue;
+    const g = meshes[id].geometry; if (!g.boundingBox) g.computeBoundingBox();
+    const c = g.boundingBox.getCenter(new THREE.Vector3());
+    let best = null, bd = Infinity;
+    for (const [, r] of regs) { const d = c.distanceTo(new THREE.Vector3(...r.target)) / Math.sqrt(r.dist); if (d < bd) { bd = d; best = r.label; } }
+    const key = `${best || CFG.part} · ${TISSUE_PLURAL[s.group] || s.group.toLowerCase()}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push([id, s]);
+  }
+  const order = regs.map(([, r]) => r.label);
+  return [...groups.entries()].sort((a, b) => order.indexOf(a[0].split(' · ')[0]) - order.indexOf(b[0].split(' · ')[0]) || a[0].localeCompare(b[0]))
+    .map(([g, list]) => `<optgroup label="${esc(g)}">${list.map(([id, s]) => `<option value="${id}">${esc(s.name)}</option>`).join('')}</optgroup>`).join('');
+}
+// "Best view" of a structure: the camera direction and see-through setting of its first common injury
+function bestView(id, c = COMMON.find((x) => x.limb === LIMB && x.id === id)) {
+  if (!c || !meshes[id]) return false;
+  // deep structures: see-through bone, or cut away everything outside the joint (state.quickJoint: set here, so cleared here)
+  if (c.joint) { setJoint(c.joint, { fly: false }); state.quickJoint = true; } else if (state.quickJoint) { setJoint(null, { fly: false }); state.quickJoint = false; }
+  for (const h of state.quickHidden || []) state.hidden.delete(h);
+  state.quickHidden = (c.hide || []).filter((h) => meshes[h] && !state.hidden.has(h));
+  for (const h of state.quickHidden) state.hidden.add(h);
+  state.xray = !!c.xray; applyVisibility();
+  const p = spotOn(id, c.at, c.from);
+  zoomStack.length = 0;
+  flyTo(p, new THREE.Vector3(...c.from), c.dist || focusRadius(id) * 5 + 9, 800);
+  document.querySelectorAll('[data-view]').forEach((b) => b.classList.remove('on'));
+  return true;
+}
+// where the tag of a common injury goes: the first surface of the structure seen from `from`, through the point `at`
+const _ray2 = new THREE.Raycaster(); _ray2.firstHitOnly = true;
+function spotOn(id, at = [0.5, 0.5, 0.5], from = [0, 0, 1]) {
+  const mesh = meshes[id], g = mesh.geometry; if (!g.boundingBox) g.computeBoundingBox();
+  const b = g.boundingBox;
+  const p = new THREE.Vector3(...[0, 1, 2].map((i) => THREE.MathUtils.lerp(b.min.getComponent(i), b.max.getComponent(i), at[i]))).add(mesh.position);
+  const d = new THREE.Vector3(...from).normalize();
+  _ray2.set(p.clone().addScaledVector(d, 300), d.clone().negate());
+  const hit = _ray2.intersectObject(mesh, false)[0];
+  if (hit) return hit.point.clone();
+  return g.boundsTree.closestPointToPoint(p.clone().sub(mesh.position)).point.add(mesh.position);
+}
+// undo what a quick-pick changed in the view (hidden bones, joint cut)
+function clearQuick() {
+  for (const h of state.quickHidden || []) state.hidden.delete(h);
+  state.quickHidden = [];
+  if (state.quickJoint) { state.quickJoint = false; setJoint(null, { fly: false }); }
+  applyVisibility();
+}
+function applyCommon(c) {
+  if (!c || !meshes[c.id] || !injuries.targets[c.id]) { toast('This injury is not available on this page.'); return; }
+  closePopovers();
+  if (state.spread) { state.spread = 0; $('#spread').value = '0'; applySpread(); }
+  revealFor(c.id);
+  if (state.mode !== 'injury') setMode('injury');
+  chooseInjTarget(c.id);
+  const types = injuryTypesFor(c.id), type = types.some((t) => t.type === c.type) ? c.type : types[0].type;
+  const p = spotOn(c.id, c.at, c.from);
+  if (!injuries.add(c.id, type, injuries.anchorFor(c.id, p))) { toast('This structure already has the maximum of 6 injuries.'); return; }
+  state.lastQuick = injuries.list.length - 1;
+  renderInjuryList(); setStep(2);
+  $('#inj-move').hidden = false;
+  bestView(c.id, c);
+  toast(`${c.label} shown. Pick another type, move the tag or add more.`, 3400);
+}
+
 function wireInjuryUI() {
   document.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
   const sel = $('#inj-picker');
-  sel.innerHTML = '<option value="">Choose a structure…</option>' + Object.entries(STRUCTURES).filter(([id]) => injuryKind(id))
-    .map(([id, s]) => `<option value="${id}">${s.name}</option>`).join('');
-  sel.addEventListener('change', () => { if (sel.value) { chooseInjTarget(sel.value); state.selected = sel.value; zoomStructure(0); state.selected = null; } });
+  sel.addEventListener('change', () => { if (sel.value) { const id = sel.value; chooseInjTarget(id); if (!bestView(id)) { state.selected = id; zoomStructure(0); state.selected = null; } } });
+  // common injuries: one tap picks the structure, the injury and a view that shows it
+  const mine = COMMON.filter((c) => c.limb === LIMB);
+  $('#inj-common').innerHTML = mine.length ? `<h3>Common injuries</h3><div class="chips">${mine.map((c) => `<button data-common="${c.key}">${esc(c.label)}</button>`).join('')}</div><h3 class="or">Or choose the structure yourself</h3>` : '';
+  $('#inj-common').querySelectorAll('[data-common]').forEach((b) => b.addEventListener('click', () => applyCommon(COMMON.find((c) => c.key === b.dataset.common))));
+  $('#inj-move').addEventListener('click', () => {
+    const i = state.lastQuick; if (i == null || !injuries.list[i]) return;
+    const inj = injuries.list[i]; injuries.remove(i); state.lastQuick = null; renderInjuryList();
+    state.injType = inj.type;
+    $('#inj-tap-msg').textContent = `Tap the spot on the ${STRUCTURES[inj.id].short} where the ${typeInfo(injuryKind(inj.id), inj.type).label.replace(/^(?!Grade)./, (c) => c.toLowerCase())} should go.`;
+    setStep(3);
+  });
   const zoomT = (f) => { state.selected = state.injTarget; zoomStructure(f); state.selected = null; };
   $('#inj-zoom-in').addEventListener('click', () => zoomT(0.7));
   $('#inj-zoom-out').addEventListener('click', () => zoomT(1.4));
   $('#inj-zoom-reset').addEventListener('click', () => zoomT(0));
   $('#inj-change').addEventListener('click', () => setStep(1));
   $('#inj-cancel').addEventListener('click', () => setStep(2));
-  $('#inj-undo').addEventListener('click', () => { injuries.undo(); renderInjuryList(); });
-  $('#inj-clear').addEventListener('click', () => { injuries.clear(); renderInjuryList(); });
+  const forget = () => { state.lastQuick = null; $('#inj-move').hidden = true; };
+  $('#inj-undo').addEventListener('click', () => { injuries.undo(); forget(); renderInjuryList(); });
+  $('#inj-clear').addEventListener('click', () => { injuries.clear(); forget(); renderInjuryList(); });
 }
 
 let lastTap = { t: 0 };
@@ -671,13 +766,18 @@ function updateCube() {
 const fadeAt = (p) => fadeP(p.x, p.y, p.z);
 
 // ---------- UI wiring ----------
-function buildPicker() {
-  const sel = $('#picker');
-  const groups = {};
-  for (const [id, s] of Object.entries(STRUCTURES)) (groups[s.group] ||= []).push([id, s]);
-  sel.innerHTML = '<option value="">Find a structure…</option>' + Object.entries(groups).map(([g, list]) =>
-    `<optgroup label="${g}">${list.map(([id, s]) => `<option value="${id}">${s.name}</option>`).join('')}</optgroup>`).join('');
-  sel.addEventListener('change', () => { select(sel.value || null); if (sel.value) zoomStructure(0); });
+// one search box: structures here, common injuries and structures on the other pages
+function buildFind() {
+  mountSearch($('#find'), $('#find-results'), { here: LIMB, onLocal(e) {
+    if (e.kind === 'injury') { const c = COMMON.find((x) => x.key === e.key); if (c) { applyCommon(c); return true; } }
+    if (e.kind === 'structure' && meshes[e.id]) { findStructure(e.id); return true; }
+    return false;
+  } });
+}
+function findStructure(id) {
+  if (state.mode === 'injury' && !PATIENT && injuryKind(id)) { chooseInjTarget(id); bestView(id); return; }
+  if (state.mode === 'injury') setMode('explore');
+  select(id); zoomStructure(0);
 }
 function wireUI() {
   document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
@@ -686,13 +786,15 @@ function wireUI() {
   $('#zoom-in').addEventListener('click', () => zoomStructure(0.7));
   $('#zoom-out').addEventListener('click', () => zoomStructure(1.4));
   $('#zoom-reset').addEventListener('click', () => zoomStructure(0));
-  $('#reset').addEventListener('click', () => { select(null); resetView(); });
+  $('#reset').addEventListener('click', () => { if (PATIENT && clinicianSnap) { applySnap(clinicianSnap); toast("Back to your clinician's view"); return; } clearQuick(); select(null); resetView(); });
+  if (PATIENT) { $('#reset').textContent = "My clinician's view"; $('#reset').title = 'Go back to the view your clinician sent'; }
+  $('#pt-toggle').addEventListener('click', () => setPatientCard($('#injury').classList.contains('collapsed')));
   $('#info-close').addEventListener('click', () => select(null));
   $('#isolate').addEventListener('click', () => toggleIsolate());
   $('#vessels').addEventListener('click', () => { if (state.tissues) { state.tissues = null; setVessels(true); } else setVessels(!state.vessels); });
-  { const b = document.createElement('button'); b.id = 'show'; b.className = 'toggle'; b.textContent = 'Show…'; b.title = 'Show one joint only, or only some tissues (for example bones and ligaments)';
-    $('#vessels').after(b); b.addEventListener('click', () => openShow()); }
-  $('#labels').addEventListener('click', () => { state.labels = !state.labels; $('#labels').setAttribute('aria-pressed', String(state.labels)); });
+  $('#show').addEventListener('click', () => { closePopovers(); openShow(); });
+  $('#labels').addEventListener('click', () => setLabels(!state.labels));
+  $('#pt-labels').addEventListener('click', () => setLabels(!state.labels));
   $('#spread').addEventListener('input', (e) => { state.spread = Number(e.target.value); applySpread(); });
   document.querySelectorAll('#cube .face').forEach((f) => f.addEventListener('click', () => {
     const v = f.dataset.face;
@@ -706,20 +808,12 @@ function wireUI() {
     a.addEventListener('click', async () => { const u = new URL(await shareLink()); u.searchParams.delete('embed'); a.href = u.toString(); });
     a.href = location.href; $('.modes').appendChild(a);
   }
-  { // switch to another body part, keeping patient and embed mode
-    const PAGES = [['index.html', 'Leg'], ['hand.html', 'Hand'], ['shoulder.html', 'Shoulder'], ['spine.html', 'Spine and pelvis'], ['head.html', 'Skull and face'], ['body.html', 'Whole body'], ['pain.html', 'Where it hurts (for patients)']];
-    const here = { leg: 'index.html', hand: 'hand.html', shoulder: 'shoulder.html', spine: 'spine.html', head: 'head.html' }[LIMB];
-    const sel = $('#part-nav');
-    if (sel) {
-      sel.innerHTML = PAGES.filter(([p]) => !(EMBED && p === 'body.html')).map(([p, t]) => `<option value="${p}"${p === here ? ' selected' : ''}>${t}</option>`).join('');
-      sel.addEventListener('change', () => { const keep = new URLSearchParams(); for (const k of ['patient', 'embed']) if (QS.get(k)) keep.set(k, QS.get(k)); const q = keep.toString(); location.href = `./${sel.value}${q ? '?' + q : ''}`; });
-    }
-  }
+  mountNav($('.modes'), LIMB); // Home and the body-part menu (hidden in the patient view)
   $('#version').textContent = `v${APP_VERSION}`;
   const reg = $('#region');
   reg.innerHTML = '<option value="">Go to…</option>' + Object.entries(REGIONS).map(([k, r]) => `<option value="${k}">${r.label}</option>`).join('');
   reg.addEventListener('change', () => goRegion(reg.value));
-  buildPicker();
+  buildFind();
   wireInjuryUI();
   wireShareUI();
 }
@@ -737,7 +831,7 @@ function applySnap(sn) {
   state.peel = sn.p ?? 2; $('#peel').value = String(state.peel);
   state.xray = !!sn.x;
   state.spread = sn.s || 0; $('#spread').value = String(state.spread); applySpread();
-  state.labels = !!sn.l; $('#labels').setAttribute('aria-pressed', String(state.labels));
+  setLabels(!!sn.l);
   setVessels(!!sn.ve);
   state.tissues = sn.t ? new Set(sn.t) : null; setJoint(sn.j || null, { fly: false });
   if (sn.c) { camera.position.set(sn.c[0], sn.c[1], sn.c[2]); controls.target.set(sn.c[3], sn.c[4], sn.c[5]); controls.update(); }
@@ -750,24 +844,24 @@ function withParam(url, name) { const u = new URL(url); u.searchParams.set(name,
 function iframeCode(src) { return `<iframe src="${src}" title="${CFG.title}" width="100%" height="640" style="border:0;border-radius:12px;max-width:1100px" allow="fullscreen; clipboard-write; web-share" loading="lazy"></iframe>`; }
 async function shareLink(snap = getSnap()) { return `${location.origin}${location.pathname}${PATIENT ? '?patient=1' : ''}#c=${await encode(snap)}`; }
 async function openShare(snap) {
-  const url = await shareLink(snap);
-  let copied = false; try { await navigator.clipboard.writeText(url); copied = true; } catch { /* clipboard blocked: the box below still has it */ }
-  openDialog('Share this view', `<p class="note">${copied ? '<b>Link copied.</b> ' : ''}The link reopens this exact view and these injuries on any device.
+  closePopovers();
+  const url = await shareLink(snap), purl = withParam(url, 'patient');
+  let copied = false; try { await navigator.clipboard.writeText(purl); copied = true; } catch { /* clipboard blocked: the box below still has it */ }
+  openDialog('Share this view', `<h3 class="first">Send to your patient</h3>
+    <p class="note">${copied ? '<b>Patient link copied.</b> ' : ''}View-only: your patient can turn, zoom and tap to read, and cannot change the injuries or leave this page by accident.
     Everything is inside the link itself; nothing is stored on a server and it holds no patient details.</p>
-    <div class="row"><input type="text" id="share-url" readonly value="${esc(url)}" aria-label="Share link"><button id="share-copy">Copy</button></div>
-    ${navigator.share ? '<button id="share-native">Send…</button>' : ''}
-    <h3>For a patient</h3>
-    <p class="note">The same view, but view-only: the patient can turn, zoom and tap to read, and cannot change the injuries.</p>
-    <div class="row"><input type="text" id="share-patient" readonly value="${esc(withParam(url, 'patient'))}" aria-label="Patient link"><button data-copy="share-patient">Copy</button></div>
-    <h3>Put it on a website</h3>
+    <div class="row"><input type="text" id="share-patient" readonly value="${esc(purl)}" aria-label="Patient link"><button data-copy="share-patient" class="primary">Copy</button></div>
+    ${navigator.share ? '<button id="share-native" class="primary wide">Send to patient…</button>' : ''}
+    <h3>For you</h3>
+    <p class="note">The same view, still editable. Keep it to carry on later, or save it under Cases (in the ⋯ menu).</p>
+    <div class="row"><input type="text" id="share-url" readonly value="${esc(url)}" aria-label="Editable link"><button data-copy="share-url">Copy</button></div>
+    <details class="site"><summary>Put it on a website</summary>
     <p class="note">Paste this code into a page of the clinic website. Use the second one for patients (view-only).</p>
     <div class="row"><input type="text" id="share-embed" readonly value="${esc(iframeCode(withParam(url, 'embed')))}" aria-label="Embed code"><button data-copy="share-embed">Copy</button></div>
-    <div class="row"><input type="text" id="share-embed-p" readonly value="${esc(iframeCode(withParam(withParam(url, 'embed'), 'patient')))}" aria-label="Embed code for patients"><button data-copy="share-embed-p">Copy</button></div>`);
+    <div class="row"><input type="text" id="share-embed-p" readonly value="${esc(iframeCode(withParam(withParam(url, 'embed'), 'patient')))}" aria-label="Embed code for patients"><button data-copy="share-embed-p">Copy</button></div></details>`);
   $('#dlg-body').querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', async () => { const inp = $('#' + b.dataset.copy); try { await navigator.clipboard.writeText(inp.value); toast('Copied'); } catch { inp.select(); toast('Press Ctrl+C or Cmd+C to copy'); } }));
   $('#dlg-body').querySelectorAll('input').forEach((i) => i.addEventListener('focus', (e) => e.target.select()));
-  $('#share-url').addEventListener('focus', (e) => e.target.select());
-  $('#share-copy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(url); toast('Link copied'); } catch { $('#share-url').select(); toast('Press Ctrl+C or Cmd+C to copy'); } });
-  $('#share-native')?.addEventListener('click', () => navigator.share({ title: CFG.title, url }).catch(() => {}));
+  $('#share-native')?.addEventListener('click', () => navigator.share({ title: CFG.title, url: purl }).catch(() => {}));
 }
 function wrapText(g, text, maxW) {
   const words = text.split(/\s+/), lines = []; let line = '';
@@ -869,11 +963,28 @@ function wireShareUI() {
   $('#snap').addEventListener('click', () => saveImage());
   $('#cases').addEventListener('click', () => openCases());
   $('#dlg-close').addEventListener('click', closeDialog);
-  $('#more').addEventListener('click', () => { const tb = $('.toolbar'); const open = tb.classList.toggle('open'); $('#more').setAttribute('aria-expanded', String(open)); $('#more').textContent = open ? 'Less' : 'More'; frameFreeArea(); });
+  // Display panel and the ⋯ menu: one open at a time
+  const pop = (btn, el) => btn.addEventListener('click', (e) => { e.stopPropagation(); const open = el.classList.contains('hidden'); closePopovers(); if (open) { if (el.id === 'overflow-menu') { const r = btn.getBoundingClientRect(); el.style.left = `${Math.max(16, Math.min(r.right - 170, innerWidth - 186))}px`; } el.classList.remove('hidden'); btn.setAttribute('aria-expanded', 'true'); if (el.id === 'display-panel') closeDialog(); } });
+  pop($('#display'), $('#display-panel')); pop($('#overflow'), $('#overflow-menu'));
+  $('#display-close').addEventListener('click', closePopovers);
+  $('#overflow-menu').addEventListener('click', () => closePopovers());
+  document.addEventListener('pointerdown', (e) => { if (!$('#overflow-menu').classList.contains('hidden') && !e.target.closest('#overflow-menu, #overflow')) closePopovers(); });
+}
+function closePopovers() {
+  for (const [b, el] of [['#display', '#display-panel'], ['#overflow', '#overflow-menu']]) { $(el).classList.add('hidden'); $(b).setAttribute('aria-expanded', 'false'); }
+}
+function setLabels(on) { state.labels = on; for (const b of ['#labels', '#pt-labels']) $(b).setAttribute('aria-pressed', String(on)); }
+let clinicianSnap = null;
+// patient view: the injury card folds down to one line so the model stays visible
+function setPatientCard(open) {
+  $('#injury').classList.toggle('collapsed', !open);
+  $('#pt-toggle').textContent = open ? 'Hide' : 'Read';
+  $('#pt-toggle').setAttribute('aria-expanded', String(open));
+  frameFreeArea();
 }
 async function openFromHash() {
   const m = location.hash.match(/^#c=([A-Za-z0-9_-]+)/); if (!m) return;
-  try { applySnap(await decode(m[1])); toast('Opened a shared view'); } catch { toast('This share link could not be opened. It may be cut short.', 4500); }
+  try { const sn = await decode(m[1]); if (PATIENT) clinicianSnap = sn; applySnap(sn); toast(PATIENT ? 'Your clinician sent you this view' : 'Opened a shared view'); } catch { toast('This share link could not be opened. It may be cut short.', 4500); }
 }
 window.addEventListener('hashchange', openFromHash);
 
@@ -926,6 +1037,7 @@ function loop(now) {
   await loadAnatomy();
   injuries = new InjuryManager(scene, meshes);
   computeLabelAnchors(); buildLabels();
+  $('#inj-picker').innerHTML = '<option value="">Choose a structure…</option>' + groupedInjuryOptions();
   applyVisibility();
   // test hooks
   window.__knee = { meshes, setJoint, setTissues, openShow, getSnap, applySnap, shareLink, saveImage, openCases, openShare, goRegion, REGIONS, setVessels, injuries, state, setMode, chooseInjTarget, renderInjuryList, THREE, camera, controls, flyTo, VIEWS, setView,
@@ -956,6 +1068,10 @@ function loop(now) {
   }
   if (qs.has('sel')) { select(qs.get('sel')); if (qs.has('iso')) toggleIsolate(true); if (qs.has('zoom')) { anim = null; const c = focusCenter(state.selected); const d = camera.position.clone().sub(controls.target).normalize(); camera.position.copy(c).add(d.multiplyScalar(focusRadius(state.selected) * 5 + 9)); controls.target.copy(c); } }
   await openFromHash();
+  // links from the home page and the search box on other pages: ?pick=<common injury>, ?find=<structure>
+  if (!PATIENT && qs.has('pick')) applyCommon(COMMON.find((c) => c.key === qs.get('pick') && c.limb === LIMB));
+  if (qs.has('find') && meshes[qs.get('find')]) findStructure(qs.get('find'));
+  if (qs.has('pick') || qs.has('find')) { const u = new URL(location.href); u.searchParams.delete('pick'); u.searchParams.delete('find'); history.replaceState(null, '', u); }
   $('#loading').classList.add('done');
   window.__ready = { loadMs: Math.round(performance.now() - t0) };
   requestAnimationFrame(loop);

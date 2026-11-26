@@ -4,6 +4,17 @@ An interactive 3D model of the **right or left leg, from the hip to the toes**, 
 patients what is injured. The knee has the most detail; the hip and the ankle and foot now have their joints modelled too.
 **Educational demo, not for diagnosis.** It stores no patient names or health details.
 
+## Home page and getting around
+
+The site opens on a **home page** (`index.html`) with one tile per body part (Knee and leg, Shoulder and elbow, Hand and wrist,
+Spine and pelvis, Skull and face, Whole body) and the common injuries of each part one tap away.
+- **Search** (on the home page and in the toolbar of every page) finds structures, injuries and body parts across the whole
+  app, including lay words and abbreviations: "rotator cuff", "ACL", "kneecap", "slipped disc", "tennis elbow".
+  A result on another page opens that page (an injury opens already placed; a structure opens selected and zoomed in).
+- Every page has **Home** and a **body-part menu** at the top left. Old links to the site root (share links, patient links,
+  website code from earlier versions) still open the leg page.
+- The leg page is now `leg.html`.
+
 ## How to use it
 
 **Right leg / Left leg** (next to the title) switches sides. The left leg is the mirror image of the scanned right leg:
@@ -12,14 +23,23 @@ left leg opens on the left leg.
 
 **Explore mode**
 - Drag to rotate, pinch or scroll to zoom, two-finger drag (or right-drag) to pan.
+- The toolbar keeps the main controls up front: **Front / Back / Inside / Outside** and **Reset**, **Go to…**, **Find** (search),
+  **Display**, **Share** (blue) and **⋯** (Save image and Cases).
 - **Front / Back / Inside / Outside** jump to standard views (Inside = toward the other leg). **Reset** returns to the whole leg.
 - **Go to…** flies to the hip, thigh, knee, calf and shin, or ankle and foot.
+- **Display** opens one panel with See through bone, Labels, Vessels and nerves, One joint or tissue…, Layers and Spread apart.
 - **Vessels and nerves** shows or hides the arteries, veins and the four main nerves (on in Explore, off in Injury mode).
 - **See through bone** fades the bones so the ACL and PCL inside the joint are visible.
 - **Layers** slider peels tissue away: skin → muscle → ligaments, tendons, vessels, nerves → cartilage → bone.
 - Tap any structure (or use **Find a structure**) to see its name, what it does and common injuries, with Zoom in / Zoom out / Reset view.
 
 **Injury mode**
+- **Common injuries** (top of the Injury panel, and on the home page): one tap picks the structure and the injury, places
+  the tag at a typical spot and turns the model to a view that shows it (with see-through bone, or the joint cut out, for
+  structures hidden inside a joint). Then pick another type, **Move the tag** (tap the right spot), or add more.
+  Each page has its own list, for example ACL tear, meniscus tear, ankle sprain, rotator cuff tear, tennis elbow,
+  scaphoid fracture, herniated disc L4-L5, broken nose.
+- Or do it step by step. The structure list is grouped by part of the body and tissue (for example "Knee · ligaments").
 1. Tap a ligament, tendon, meniscus, the hip labrum or a bone (or pick it from the list).
 2. Choose the injury type:
    - Ligaments: knee (ACL, PCL, MCL, LCL), hip (iliofemoral, pubofemoral, ischiofemoral, ligamentum teres; the hip has no collateral ligaments), ankle: Grade I (stretched), Grade II (partial tear, frayed fibres), Grade III (complete tear, separated curled ends)
@@ -31,7 +51,7 @@ left leg opens on the left leg.
    Use **Undo last**, the **×** next to an injury, or the red **Clear all** button.
 
 **Show… (one joint, chosen tissues)**
-- **Show…** (next to Vessels and nerves; on a phone under **More**) picks what is drawn:
+- **One joint or tissue…** (in the **Display** panel) picks what is drawn:
   - **Joint**: the whole leg, or the hip, knee or ankle joint only. Everything outside a box around that joint is cut away,
     and the cut faces of bones show as flat cross-sections. Other pages offer their own joints (wrist, thumb, fingers;
     shoulder, AC joint, elbow; neck, low back, sacroiliac joints; right or left jaw joint, shown as a side slice through the joint).
@@ -45,8 +65,9 @@ left leg opens on the left leg.
 - Double-tap again on a spot to go closer to that spot, as many times as you like.
 - Zoom out (scroll, pinch or Zoom out) to step back one level at a time, back to the normal view. Double-tap empty space to go straight back.
 
-**Share, Save image and Cases** (on a phone, tap **More** to see them)
-- **Share** makes a link that reopens the same view and injuries. The whole view is packed into the part of the link after
+**Share, Save image and Cases** (Save image and Cases are in the **⋯** menu)
+- **Share** copies a **view-only link for the patient** first (Send to patient… on phones and iPads), and also gives an
+  editable link for you and, under "Put it on a website", the website code. Every link reopens the same view and injuries. The whole view is packed into the part of the link after
   `#`, which browsers never send to the server, so nothing is stored anywhere. Copy it or use the phone's share sheet.
 - **Save image** downloads a PNG of the current view with the labels, numbered injury tags, the list of injuries,
   the disclaimer and the BodyParts3D credit.
@@ -184,8 +205,11 @@ A page for patients to show their doctor where they feel pain, on a plain 3D bod
 ## On a clinic website (embedding) and patient links
 
 The **Share** dialog also gives:
-- a **patient link** (`?patient=1`): the same view and injuries, view-only. Patients can turn, zoom, double-tap and tap to read,
-  but cannot add or remove injuries;
+- a **patient link** (`?patient=1`): the same view and injuries, view-only, in a simpler patient layout. Patients get
+  Front, Back, **My clinician's view** (back to exactly what was sent) and Labels, plus a card "1 injury marked by your
+  clinician" that folds down to one line. Tapping a numbered tag or a structure explains it. There is no body-part menu,
+  Home link, side switch, Display panel, search, Share or Cases, so a patient cannot leave the page or change the view
+  by accident;
 - **website code**: an `<iframe>` snippet to paste into a page of the clinic website, one for doctors and one for patients.
   Inside a website the page hides the Whole body link and shows **Open full screen** (opens the same view in a new tab).
 
@@ -237,7 +261,14 @@ smoothed; see `data/bodyparts3d/README.md`. Source files via the npm package
 Each release is tagged (`v0.1.0`, `v0.2.0-preview`, …) and deployed to its own link so earlier versions stay available.
 
 - v0.16.0-preview: **Where does it hurt?** (`pain.html`): patients mark pain spots and areas on a 3D body, with level, kind
-  and notes, and send them to their doctor as a link or picture. Linked from the body-part menu and the Whole body page.
+  and notes, and send them to their doctor as a link or picture. Linked from the body-part menu and the home page.
+- v0.15.0-preview: easier to get around (from the v0.14 UX review): home page with body-part tiles and common injuries;
+  one search box across all pages with lay words; "Common injuries" quick-pick in Injury mode that places the injury in a
+  view that shows it; injury list grouped by body part and tissue; slimmer toolbar (Display panel, ⋯ menu, Share in blue);
+  simpler patient view (My clinician's view, foldable injury card, tap a tag or a part to read, no way to leave the page);
+  Share copies the patient link first; whole-body page uses the same Home and body-part menu (fits on phones) and opens the
+  matching detailed page for injuries; the leg page moved to `leg.html` (old links still work); readable header over the model.
+
 - v0.12.2-preview: anatomy accuracy audit across all pages (Gray's / Netter): corrected the ACL's attachment, the pterion,
   the anatomical snuffbox, the branching of the lower-leg arteries, the sciatic and median nerve areas, the costal cartilages,
   and several smaller descriptions; the knee and ankle "Show… joint only" views now keep the whole collateral ligaments and
