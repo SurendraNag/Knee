@@ -42,7 +42,7 @@ const muscle = (name, what, injuries = []) => ({ name, group: 'Muscle', layer: 1
 export const STRUCTURES = {};
 for (const [id, , label, region] of VERTEBRAE) {
   const t = SPECIAL[id] || VTEXT[region];
-  STRUCTURES[id] = bone(`${label} vertebra`, t.what, t.injuries, `${label} vertebra`);
+  STRUCTURES[id] = { ...bone(`${label} vertebra`, t.what, t.injuries, `${label} vertebra`), vertebra: true };
 }
 Object.assign(STRUCTURES, {
   sacrum: bone('Sacrum', 'The triangular bone at the base of the spine, made of five fused vertebrae. It is wedged between the two hip bones at the sacroiliac joints.', ['Sacral insufficiency fractures in older people with osteoporosis', 'Fractures in severe pelvic injuries'], 'sacrum', 'pelvis'),

@@ -39,8 +39,10 @@ const BONES = [
 const smoothBone = (g) => normals(loopSubdivide(loopSubdivide(crop(g, Y0, Y1))));
 const bones = {}, piece = {};
 for (const [id, fjs] of BONES) bones[id] = smoothBone(src(...fjs));
-for (const [f, fjs] of Object.entries(PH)) { fjs.forEach((fj, k) => { piece[`${f}_${k}`] = smoothBone(part(fj)); }); bones[`${f}_bones`] = normals(merge(fjs.map((_, k) => piece[`${f}_${k}`]))); }
-for (const id of Object.keys(bones).filter((k) => !k.endsWith('_bones'))) piece[id] = bones[id];
+// each finger bone (phalanx) is its own structure, so a break can be put on the right one (v0.22)
+const PH_NAMES = (f) => (f === 'thumb' ? ['proximal', 'distal'] : ['proximal', 'middle', 'distal']);
+for (const [f, fjs] of Object.entries(PH)) { fjs.forEach((fj, k) => { piece[`${f}_${k}`] = smoothBone(part(fj)); bones[`${f}_${PH_NAMES(f)[k]}`] = piece[`${f}_${k}`]; }); }
+for (const id of Object.keys(bones).filter((k) => !/_(proximal|middle|distal)$/.test(k))) piece[id] = bones[id];
 log('bones', Object.values(bones).reduce((a, g) => a + g.positions.length / 3, 0), 'verts');
 
 // Joint centre between two bones: midpoint of the closest vertex pair (bones are dense after subdivision).

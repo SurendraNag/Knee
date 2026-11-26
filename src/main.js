@@ -706,8 +706,11 @@ function applyCommon(c) {
   const p = spotOn(c.id, c.at, c.from);
   const before = injuries.list.slice();
   if (!injuries.add(c.id, type, injuries.anchorFor(c.id, p))) { toast('This structure already has the maximum of 6 injuries.'); return; }
+  const qi = injuries.list.length - 1;
+  // a condition with more than one part (for example stenosis: a disc bulge plus bone spurs) adds the others too
+  for (const e of c.also || []) if (meshes[e.id] && injuries.targets[e.id]) injuries.add(e.id, e.type, injuries.anchorFor(e.id, spotOn(e.id, e.at, e.from)));
   injUndo.push(before); injRedo.length = 0; updateInjHist();
-  state.lastQuick = injuries.list.length - 1;
+  state.lastQuick = qi;
   renderInjuryList(); setStep(2);
   $('#inj-move').hidden = false;
   bestView(c.id, c);
@@ -893,6 +896,16 @@ function toast(msg, ms = 2600) { const t = $('#toast'); t.textContent = msg; t.h
 function openDialog(title, html) { $('#dlg-title').textContent = title; $('#dlg-body').innerHTML = html; $('#dlg').classList.remove('hidden'); }
 function closeDialog() { $('#dlg').classList.add('hidden'); }
 const getSnap = () => ({ ...snapshot({ state, camera, controls, injuries }), pp: modesty.enabled && modesty.shown ? 1 : undefined });
+// Links made before v0.22 name a whole finger ("thumb_bones"); each finger bone is its own structure now, so an injury
+// moves to the finger bone nearest its spot, and a hidden finger hides all of its bones.
+const OLD_FINGER = /^(thumb|index|middle|ring|little)_bones$/;
+const fingerPieces = (f) => ['proximal', 'middle', 'distal'].map((k) => `${f}_${k}`).filter((id) => meshes[id]);
+function migrateInjury(j) {
+  const m = OLD_FINGER.exec(j.id); if (!m || meshes[j.id]) return j;
+  const p = new THREE.Vector3(...j.anchor.p); let best = null, bd = Infinity;
+  for (const id of fingerPieces(m[1])) { const r = meshes[id].geometry.boundsTree.closestPointToPoint(p); if (r && r.distance < bd) { bd = r.distance; best = id; } }
+  return best ? { ...j, id: best } : j;
+}
 function applySnap(sn) {
   anim = null;
   setSide(sn.sd ? 'left' : 'right');
@@ -904,9 +917,9 @@ function applySnap(sn) {
   setVessels(!!sn.ve);
   state.tissues = sn.t ? new Set(sn.t) : null; setJoint(sn.j || null, { fly: false });
   if (sn.c) { camera.position.set(sn.c[0], sn.c[1], sn.c[2]); controls.target.set(sn.c[3], sn.c[4], sn.c[5]); controls.update(); }
-  injuries.set(injuryList(sn).filter((j) => meshes[j.id] && injuries.targets[j.id])); renderInjuryList(); resetInjHist();
+  injuries.set(injuryList(sn).map(migrateInjury).filter((j) => meshes[j.id] && injuries.targets[j.id])); renderInjuryList(); resetInjHist();
   if (sn.m !== 1) select(sn.sel && meshes[sn.sel] ? sn.sel : null);
-  state.hidden.clear(); for (const id of sn.h || []) if (meshes[id]) state.hidden.add(id);
+  state.hidden.clear(); for (const id of sn.h || []) { if (meshes[id]) state.hidden.add(id); else if (OLD_FINGER.test(id)) for (const q of fingerPieces(OLD_FINGER.exec(id)[1])) state.hidden.add(q); }
   state.quickHidden = [];
   modesty.shown = !!sn.pp; $('#private-parts')?.repaint();
   applyVisibility();
