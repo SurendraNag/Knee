@@ -12,9 +12,34 @@ export const T = {
   BRUISE: 21, STRESS: 22, HAIRLINE: 23, DISPLACED: 24, SHATTERED: 25, // bone
   ARTHRITIS: 26, SLIP: 27, // bone: worn joint edge with bone spurs; a vertebra slipped forward (spondylolisthesis)
   WORN: 14, STENOSIS: 15, // spinal disc: worn and flattened; broad bulge narrowing the canal
+  // soft tissue (v0.23): muscle, skin, nerve, blood vessel
+  STRAIN: 31, MTEAR: 32, CONTUSION: 33, CRUSH: 34, COMPART: 35,
+  CUT: 41, OPENFX: 42, GRAZE: 43, DEGLOVE: 44,
+  NBRUISE: 51, NCUT: 52, VTEAR: 53, CLOT: 54,
 };
 
 export const INJURY_TYPES = {
+  muscle: [
+    { type: T.STRAIN, label: 'Strain (partial tear)', sub: 'Some muscle fibres torn', say: (s) => `Some fibres of the ${s} are torn (a muscle strain or "pulled muscle"), with bleeding into the muscle.` },
+    { type: T.MTEAR, label: 'Complete tear', sub: 'Torn across, ends pulled back', say: (s) => `The ${s} is torn across, and its two ends have pulled back from each other.` },
+    { type: T.CONTUSION, label: 'Bruised muscle (contusion)', sub: 'Bleeding and swelling', say: (s) => `The ${s} is bruised from a direct blow: bleeding and swelling inside the muscle, without a tear.` },
+    { type: T.CRUSH, label: 'Crush damage', sub: 'Bruised, swollen, damaged', say: (s) => `The ${s} has been crushed: the muscle is badly bruised and swollen, and some of it may be damaged.` },
+    { type: T.COMPART, label: 'Compartment syndrome', sub: 'Pressure building up', say: (s) => `Swelling of the ${s} is trapped inside its tight wrapping (fascia), so pressure builds up and can squeeze the blood supply and nerves. This is an emergency that is often treated by opening the wrapping (fasciotomy).` },
+  ],
+  skin: [
+    { type: T.CUT, label: 'Cut (laceration)', sub: 'Slit through the skin', say: (s) => `The ${s} is cut through here.` },
+    { type: T.OPENFX, label: 'Wound over a break (open fracture)', sub: 'Bone broke through the skin', say: (s) => `There is a wound in the ${s} over a broken bone (an open fracture): the break is open to the outside, so it needs cleaning to prevent infection.` },
+    { type: T.GRAZE, label: 'Graze (abrasion)', sub: 'Top layer scraped off', say: (s) => `The top layer of the ${s} is scraped off here (a graze).` },
+    { type: T.DEGLOVE, label: 'Skin torn away (degloving)', sub: 'Large area lifted off', say: (s) => `A large area of ${s} has been torn away from the tissue underneath (degloving), as happens in crush and run-over injuries.` },
+  ],
+  nerve: [
+    { type: T.NBRUISE, label: 'Bruised or stretched nerve', sub: 'Swollen, not cut', say: (s) => `The ${s} is bruised or stretched but not cut. This can cause numbness, tingling or weakness, which often recovers slowly.` },
+    { type: T.NCUT, label: 'Nerve cut through', sub: 'Ends separated', say: (s) => `The ${s} is cut through, so feeling and movement it controls are lost below this point until it is repaired and regrows.` },
+  ],
+  vessel: [
+    { type: T.VTEAR, label: 'Torn blood vessel', sub: 'Bleeding', say: (s) => `The ${s} is torn here, which causes bleeding.` },
+    { type: T.CLOT, label: 'Blood clot', sub: 'Vessel blocked', say: (s) => `A blood clot is blocking the ${s} here. In a deep leg vein this is a deep vein thrombosis (DVT), a risk after leg injuries, operations and long rest in bed.` },
+  ],
   ligament: [
     { type: T.G1, label: 'Mild sprain (grade I)', sub: 'Stretched, not torn', say: (s) => `The ${s} is stretched but not torn. This kind of injury often heals with rest and exercises; your clinician will say what applies to you.` },
     { type: T.G2, label: 'Partial tear (grade II)', sub: 'Some fibres torn', say: (s) => `The ${s} is partly torn: some of its fibres are frayed and broken, so it is looser and weaker.` },
@@ -58,8 +83,9 @@ export const INJURY_TYPES = {
   ],
 };
 export const injuryKind = (id) => {
-  const k = STRUCTURES[id]?.injury || STRUCTURES[id]?.kind;
-  return k === 'bone' || k === 'ligament' || k === 'tendon' || k === 'meniscus' || k === 'labrum' || k === 'disc' || k === 'spinaldisc' || k === 'jawdisc' ? k : null;
+  let k = STRUCTURES[id]?.injury || STRUCTURES[id]?.kind;
+  if (k === 'artery' || k === 'vein') k = 'vessel';
+  return k === 'muscle' || k === 'skin' || k === 'nerve' || k === 'vessel' || k === 'bone' || k === 'ligament' || k === 'tendon' || k === 'meniscus' || k === 'labrum' || k === 'disc' || k === 'spinaldisc' || k === 'jawdisc' ? k : null;
 };
 export const typeInfo = (kind, type) => INJURY_TYPES[kind].find((t) => t.type === type);
 // The injury types offered for one structure: a structure can narrow its kind's list with `injuryTypes` (for example, no
@@ -102,6 +128,12 @@ for (int i = 0; i < ${MAX}; i++) { if (i >= uInjN) break;
   if (ty == 26) { float d = length(position - p); float f = 1.0 - smoothstep(0.4, 1.4, d);
     float bump = smoothstep(0.45, 0.8, inz(position * 3.2 + uInjB[i].w)); injPos += objectNormal * (0.1 + 0.5 * bump) * f; }
   if (ty == 27) { injPos += vec3(0.0, 0.0, 0.75); }
+  // soft tissue
+  if (ty == 32) { vec3 r0 = position - p; float dy = r0.y; float rad = length(r0 - vec3(0.0, dy, 0.0));
+    injPos += vec3(0.0, sign(dy) * 0.6 * exp(-abs(dy) / 2.5), 0.0) * (1.0 - smoothstep(2.5, 5.0, rad)); }
+  if (ty == 33 || ty == 34 || ty == 35 || ty == 51 || ty == 54) { float d = length(position - p);
+    float R = ty == 35 ? 7.0 : ty == 34 ? 4.5 : ty == 33 ? 2.5 : ty == 54 ? 3.0 : 1.6; float a = ty == 35 ? 0.65 : ty == 34 ? 0.5 : ty == 33 ? 0.25 : ty == 54 ? 0.25 : 0.12;
+    injPos += objectNormal * a * (1.0 - smoothstep(R * 0.3, R, d)); }
 }
 `;
 const BONE_FRAG = /* glsl */ `
@@ -131,6 +163,33 @@ const BONE_FRAG = /* glsl */ `
       col = mix(col, vec3(0.16, 0.08, 0.06), line * (ty == 22 ? 0.55 : 0.92));
       if (ty == 22) col = mix(col, vec3(0.78, 0.45, 0.42), 0.35 * exp(-dot(rel, rel) / 0.3));
     }
+    if (ty == 31) { float d = length(rel) + (inz(vIP * 1.2 + seed) - 0.5) * 1.2; float f = 1.0 - smoothstep(1.2, 3.4, d);
+      float fib = inz(vec3(vIP.x * 6.0, vIP.y * 0.9, vIP.z * 6.0) + seed);
+      if (f > 0.4 && fib > 0.74) discard;
+      col = mix(col, mix(vec3(0.38, 0.04, 0.12), vec3(0.2, 0.02, 0.06), smoothstep(0.5, 0.74, fib)), f * 0.85); }
+    if (ty == 32) { float d = length(rel - vec3(0.0, rel.y, 0.0)); float band = abs(rel.y) - (inz(vIP * 2.0 + seed) - 0.5) * 0.5;
+      if (band < 0.45 && d < 4.0) discard;
+      col = mix(col, vec3(0.6, 0.1, 0.1), (1.0 - smoothstep(0.45, 1.6, band)) * (1.0 - smoothstep(3.0, 4.0, d)) * 0.8); }
+    if (ty == 33 || ty == 34) { float R = ty == 34 ? 4.5 : 2.5; float d = length(rel) + (inz(vIP * 1.5 + seed) - 0.5) * R * 0.4;
+      float f = 1.0 - smoothstep(R * 0.2, R, d);
+      vec3 b = ty == 34 ? mix(vec3(0.45, 0.12, 0.2), vec3(0.25, 0.05, 0.12), inz(vIP * 4.0)) : vec3(0.45, 0.16, 0.32);
+      col = mix(col, b, f * 0.8); }
+    if (ty == 35) { float d = length(rel); float f = 1.0 - smoothstep(2.0, 7.0, d);
+      col = mix(col, vec3(0.55, 0.16, 0.36), f * 0.6); }
+    if (ty == 41) { vec3 dd = normalize(cross(n0, vec3(0.0, 1.0, 0.0)) + vec3(0.0, 0.35, 0.0)); float sl = dot(rel, dd); float w = length(rel - dd * sl - n0 * dot(rel, n0));
+      float L = 2.2; float wid = 0.1 * (1.0 - smoothstep(L * 0.6, L, abs(sl)));
+      if (w < wid && abs(sl) < L && depth < 1.0) discard;
+      col = mix(col, vec3(0.65, 0.12, 0.12), (1.0 - smoothstep(wid, wid + 0.25, w)) * step(abs(sl), L) * step(depth, 1.0) * 0.8); }
+    if (ty == 42 || ty == 44) { float R = ty == 44 ? 3.6 : 1.2; float d = length(rel - n0 * dot(rel, n0)) + (inz(vIP * (ty == 44 ? 0.9 : 2.5) + seed) - 0.5) * R * 0.5;
+      if (d < R && depth < 1.5) discard;
+      col = mix(col, vec3(0.6, 0.1, 0.1), (1.0 - smoothstep(R, R + 0.6, d)) * step(depth, 1.5) * 0.85); }
+    if (ty == 43) { float d = length(rel) + (inz(vIP * 2.0 + seed) - 0.5) * 0.9; float f = 1.0 - smoothstep(0.6, 2.0, d);
+      col = mix(col, mix(vec3(0.85, 0.42, 0.4), vec3(0.62, 0.15, 0.15), inz(vIP * 14.0)), f * 0.85); }
+    if (ty == 51) { float f = 1.0 - smoothstep(0.3, 1.6, length(rel)); col = mix(col, vec3(0.8, 0.35, 0.35), f * 0.7); }
+    if (ty == 52 || ty == 53) { float band = abs(rel.y) - (inz(vIP * 4.0 + seed) - 0.5) * 0.15;
+      if (band < 0.3 && length(rel) < 2.5) discard;
+      col = mix(col, ty == 53 ? vec3(0.45, 0.02, 0.04) : vec3(0.8, 0.3, 0.3), (1.0 - smoothstep(0.3, 1.2, band)) * (1.0 - smoothstep(1.5, 2.5, length(rel))) * 0.8); }
+    if (ty == 54) { float f = 1.0 - smoothstep(1.0, 3.6, length(rel)); col = mix(col, vec3(0.3, 0.03, 0.08), f * 0.9); }
     if (ty == 26) {
       float d = length(rel); float f = 1.0 - smoothstep(0.4, 1.5, d);
       #ifdef INJ_CART
@@ -303,7 +362,8 @@ export class InjuryManager {
         uInjC: { value: Array.from({ length: MAX }, () => new THREE.Vector4()) },
         uFlap: { value: STRUCTURES[id].flapToward ? new THREE.Vector4(...STRUCTURES[id].flapToward, 1) : new THREE.Vector4() },
       };
-      const family = kind === 'bone' ? 'bone' : 'sweep';
+      // soft tissue is drawn like bone (by position on the surface), whatever the mesh's shape
+      const family = ['bone', 'muscle', 'skin', 'nerve', 'vessel'].includes(kind) ? 'bone' : 'sweep';
       if (family === 'sweep') addSweepAttributes(mesh.geometry);
       patchMaterial(mesh.material, uniforms, family);
       const linked = [mesh];
@@ -358,7 +418,7 @@ export class InjuryManager {
     for (const [id, t] of Object.entries(this.targets)) {
       const mine = this.list.filter((x) => x.id === id);
       t.uniforms.uInjN.value = mine.length;
-      const needsBack = mine.some((x) => [T.G2, T.G3, T.SPLIT, T.BUCKET, T.FLAP, T.DISPLACED, T.SHATTERED].includes(x.type));
+      const needsBack = mine.some((x) => [T.G2, T.G3, T.SPLIT, T.BUCKET, T.FLAP, T.DISPLACED, T.SHATTERED, T.STRAIN, T.MTEAR, T.CUT, T.OPENFX, T.DEGLOVE, T.NCUT, T.VTEAR].includes(x.type));
       for (const m of t.linked) { if (m.material.side !== (needsBack ? THREE.DoubleSide : THREE.FrontSide)) { m.material.side = needsBack ? THREE.DoubleSide : THREE.FrontSide; m.material.needsUpdate = true; } }
       this._owner = id;
       mine.forEach((inj, i) => {

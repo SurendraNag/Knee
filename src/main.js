@@ -15,6 +15,8 @@ import { APP_VERSION } from './version.js';
 import { snapshot, injuryList, encode, decode, listCases, saveCase, deleteCase, renameCase } from './cases.js';
 import { COMMON } from './catalog.js';
 import { qrSvg, initBigText } from './qr.js';
+// every structure gets a short name for sentences ("the biceps femoris is …"); muscles, vessels and skin only have a full name
+for (const s of Object.values(STRUCTURES)) if (!s.short && s.name) s.short = s.name.replace(/^([A-Z])(?![A-Z])/, (c) => c.toLowerCase());
 import { mountSearch, mountNav } from './search.js';
 import { createModesty, modestyButton, REGIONS as PRIVATE } from './modesty.js';
 export { APP_VERSION };
@@ -299,6 +301,10 @@ function setTissues(list) {
 // a structure chosen from the list or a label must not stay hidden by the filter
 function revealFor(id) {
   if (state.tissues && !state.tissues.has(tissueOf(id))) state.tissues.add(tissueOf(id));
+  // soft tissue: bring its layer back (muscle, skin) and the vessels and nerves when one of them is injured
+  const info = STRUCTURES[id];
+  if (info && !state.tissues && info.layer < state.peel) { state.peel = info.layer; $('#peel').value = String(state.peel); applyVisibility(); }
+  if (info && VESSEL_KINDS.has(info.kind) && !state.vessels) setVessels(true);
   if (jointBox && meshes[id] && !inJointBox(meshes[id])) setJoint(null, { fly: false });
 }
 const PRESENT_TISSUES = () => TISSUES.filter(([k]) => Object.keys(meshes).some((id) => tissueOf(id) === k));
@@ -584,6 +590,7 @@ function setStep(n) {
   frameFreeArea();
 }
 function chooseInjTarget(id) {
+  revealFor(id);
   $('#inj-move').hidden = true;
   state.injTarget = id; setHighlight(id); ensureVisible(id);
   const info = STRUCTURES[id], kind = injuryKind(id);
@@ -599,7 +606,9 @@ function chooseInjTarget(id) {
 }
 function injurySentence(inj) {
   const info = STRUCTURES[inj.id]; const t = typeInfo(injuryKind(inj.id), inj.type);
-  return { title: `${info.short.replace(/^./, (c) => c.toUpperCase())}: ${t.label.replace(/^(?!Grade)./, (c) => c.toLowerCase())}`, text: t.say(info.short, info) };
+  // muscles, vessels and skin have no short name: use the full name, lower case unless it starts with an abbreviation
+  const short = info.short || info.name.replace(/^([A-Z])(?![A-Z])/, (c) => c.toLowerCase());
+  return { title: `${short.replace(/^./, (c) => c.toUpperCase())}: ${t.label.replace(/^(?!Grade)./, (c) => c.toLowerCase())}`, text: t.say(short, info) };
 }
 // A herniated disc on the spine page links to Spine Movement with that disc pushed back toward its nerve root
 // (paracentral, a protrusion), so the patient can see which nerve it presses on.
@@ -699,8 +708,8 @@ function applyCommon(c) {
   if (!c || !meshes[c.id] || !injuries.targets[c.id]) { toast('This injury is not available on this page.'); return; }
   closePopovers();
   if (state.spread) { state.spread = 0; $('#spread').value = '0'; applySpread(); }
-  revealFor(c.id);
   if (state.mode !== 'injury') setMode('injury');
+  revealFor(c.id); // after the mode change, which hides vessels and nerves
   chooseInjTarget(c.id);
   const types = injuryTypesFor(c.id), type = types.some((t) => t.type === c.type) ? c.type : types[0].type;
   const p = spotOn(c.id, c.at, c.from);
@@ -708,7 +717,7 @@ function applyCommon(c) {
   if (!injuries.add(c.id, type, injuries.anchorFor(c.id, p))) { toast('This structure already has the maximum of 6 injuries.'); return; }
   const qi = injuries.list.length - 1;
   // a condition with more than one part (for example stenosis: a disc bulge plus bone spurs) adds the others too
-  for (const e of c.also || []) if (meshes[e.id] && injuries.targets[e.id]) injuries.add(e.id, e.type, injuries.anchorFor(e.id, spotOn(e.id, e.at, e.from)));
+  for (const e of c.also || []) if (meshes[e.id] && injuries.targets[e.id] && (revealFor(e.id), true)) injuries.add(e.id, e.type, injuries.anchorFor(e.id, spotOn(e.id, e.at, e.from)));
   injUndo.push(before); injRedo.length = 0; updateInjHist();
   state.lastQuick = qi;
   renderInjuryList(); setStep(2);
