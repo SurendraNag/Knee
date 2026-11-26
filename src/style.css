@@ -278,3 +278,20 @@ button.primary:hover:not(:disabled), #share:hover { background: #5a9dff; }
 @media (max-width: 760px) { #cube-wrap { top: calc(128px + env(safe-area-inset-top)); } }
 @media (max-width: 430px) { #part-nav { max-width: 128px; } .modes { gap: 5px; } .modes button { padding: 8px 10px; } }
 @media (min-width: 761px) { #cube-wrap { bottom: calc(var(--tbh, 64px) + 46px + env(safe-area-inset-bottom)); } }
+
+/* undo / redo arrows, top left over the model (pain page, and injury mode on the explainer pages) */
+.hist { position: absolute; left: 16px; top: calc(110px + env(safe-area-inset-top)); display: flex; gap: 8px; z-index: 5; }
+.hist[hidden] { display: none; }
+.hist button { display: inline-flex; align-items: center; gap: 6px; min-height: 42px; padding: 6px 16px; border-radius: 22px; font-size: 15px; font-weight: 600;
+  background: var(--panel); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 2px 10px rgba(0,0,0,.35); }
+.hist button:disabled { opacity: 0.4; }
+@media (max-width: 760px) {
+  .hist { left: 16px; }
+  .hist button { width: 46px; height: 46px; padding: 0; justify-content: center; border-radius: 50%; }
+  .hist button span { display: none; }
+}
+/* while the injury Undo/Redo arrows show, the image credit moves below them */
+@media (min-width: 701px) { html:not(.patient) body.mode-injury .credit { top: 158px; } }
+/* in injury mode the "Showing" chip moves beside the Undo/Redo arrows */
+html:not(.patient) body.mode-injury .show-chip { left: var(--hist-right, 232px); transform: none; top: var(--hist-top, 104px); max-width: calc(100% - var(--hist-right, 232px) - 16px); }
+@media (min-width: 761px) { html:not(.patient) body.mode-injury .show-chip { max-width: calc(100% - var(--hist-right, 232px) - 372px); } }

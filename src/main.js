@@ -502,7 +502,9 @@ function injuryTap() {
       point = ray.ray.closestPointToPoint(c, new THREE.Vector3());
     }
     const anchor = injuries.anchorFor(state.injTarget, point);
+    const before = injuries.list.slice();
     if (!injuries.add(state.injTarget, state.injType, anchor)) { $('#inj-tap-msg').textContent = 'This structure already has the maximum of 6 injuries.'; return; }
+    injUndo.push(before); injRedo.length = 0; updateInjHist();
     renderInjuryList();
     setStep(2);
     return;
@@ -511,6 +513,44 @@ function injuryTap() {
   const hits = ray.intersectObjects(Object.values(meshes).filter((m) => m.visible && !m.userData.faded), false).filter((h) => fadeAt(h.point) > 0.5 && inJoint(h.point));
   const hit = hits.find((h) => pickable.includes(h.object));
   if (hit) chooseInjTarget(hit.object.userData.id);
+}
+
+// ---------- undo / redo of injuries (arrows at the top left, only while placing injuries) ----------
+const injUndo = [], injRedo = [];
+function updateInjHist() {
+  const h = $('#hist'); if (!h) return;
+  h.hidden = state.mode !== 'injury' || PATIENT;
+  $('#h-undo').disabled = !injUndo.length; $('#h-redo').disabled = !injRedo.length;
+  placeInjHist();
+}
+function placeInjHist() { // just below the mode buttons, wherever they wrap to
+  const h = $('#hist'), m = document.querySelector('.modes'); if (!h || h.hidden || !m) return;
+  h.style.top = `${Math.round(m.getBoundingClientRect().bottom + 8)}px`;
+  const r = h.getBoundingClientRect(), root = document.documentElement.style; // the "Showing" chip sits beside the arrows
+  root.setProperty('--hist-top', `${Math.round(r.top + (r.height - 40) / 2)}px`); root.setProperty('--hist-right', `${Math.round(r.right + 10)}px`);
+}
+function recordInj() { injUndo.push(injuries.list.slice()); if (injUndo.length > 200) injUndo.shift(); injRedo.length = 0; updateInjHist(); }
+function resetInjHist() { injUndo.length = 0; injRedo.length = 0; updateInjHist(); }
+function restoreInj(list) { injuries.set(list); state.lastQuick = null; $('#inj-move').hidden = true; renderInjuryList(); updateInjHist(); }
+function injUndoStep() { if (!injUndo.length) return; injRedo.push(injuries.list.slice()); restoreInj(injUndo.pop()); }
+function injRedoStep() { if (!injRedo.length) return; injUndo.push(injuries.list.slice()); restoreInj(injRedo.pop()); }
+function mountInjHist() {
+  if (PATIENT || $('#hist')) return;
+  const h = document.createElement('div');
+  h.id = 'hist'; h.className = 'hist'; h.hidden = true; h.setAttribute('role', 'group'); h.setAttribute('aria-label', 'Undo and redo injuries');
+  h.innerHTML = `<button id="h-undo" disabled aria-label="Undo" title="Undo (Ctrl+Z)"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Undo</span></button>`
+    + `<button id="h-redo" disabled aria-label="Redo" title="Redo (Ctrl+Shift+Z)"><span>Redo</span><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="m15 14 5-5-5-5M20 9H9.5a5.5 5.5 0 0 0 0 11H13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
+  document.querySelector('.modes').after(h);
+  $('#h-undo').addEventListener('click', injUndoStep);
+  $('#h-redo').addEventListener('click', injRedoStep);
+  addEventListener('keydown', (e) => {
+    if (state.mode !== 'injury' || !(e.ctrlKey || e.metaKey) || e.altKey) return;
+    const t = e.target; if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+    const k = e.key.toLowerCase();
+    if (k === 'z' && !e.shiftKey) { e.preventDefault(); injUndoStep(); }
+    else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); injRedoStep(); }
+  });
+  addEventListener('resize', placeInjHist);
 }
 
 // ---------- injury mode ----------
@@ -522,6 +562,7 @@ function setMode(mode) {
   // vessels and nerves hide in injury mode so ligaments and bones are easy to reach (the button brings them back)
   if (mode === 'injury') { select(null); setVessels(false); setStep(state.injTarget ? 2 : 1); }
   else { setVessels(true); setHighlight(null); frameFreeArea(); }
+  updateInjHist();
 }
 function setStep(n) {
   state.step = n;
@@ -555,7 +596,7 @@ function renderInjuryList() {
   $('#inj-listwrap').hidden = list.length === 0;
   $('#inj-list').innerHTML = list.map((inj, i) => { const s = injurySentence(inj);
     return `<li><span class="num">${i + 1}</span><span><b>${s.title}.</b> ${s.text}</span><button class="rm" data-rm="${i}" aria-label="Remove injury ${i + 1}">×</button></li>`; }).join('');
-  $('#inj-list').querySelectorAll('[data-rm]').forEach((b) => b.addEventListener('click', () => { injuries.remove(Number(b.dataset.rm)); state.lastQuick = null; $('#inj-move').hidden = true; renderInjuryList(); }));
+  $('#inj-list').querySelectorAll('[data-rm]').forEach((b) => b.addEventListener('click', () => { recordInj(); injuries.remove(Number(b.dataset.rm)); state.lastQuick = null; $('#inj-move').hidden = true; renderInjuryList(); }));
   // tags
   const tags = $('#tags');
   tags.innerHTML = list.map((_, i) => `<div class="tag"${PATIENT ? ` role="button" tabindex="0" aria-label="Read about injury ${i + 1}"` : ''}>${i + 1}</div>`).join('');
@@ -646,7 +687,9 @@ function applyCommon(c) {
   chooseInjTarget(c.id);
   const types = injuryTypesFor(c.id), type = types.some((t) => t.type === c.type) ? c.type : types[0].type;
   const p = spotOn(c.id, c.at, c.from);
+  const before = injuries.list.slice();
   if (!injuries.add(c.id, type, injuries.anchorFor(c.id, p))) { toast('This structure already has the maximum of 6 injuries.'); return; }
+  injUndo.push(before); injRedo.length = 0; updateInjHist();
   state.lastQuick = injuries.list.length - 1;
   renderInjuryList(); setStep(2);
   $('#inj-move').hidden = false;
@@ -664,7 +707,7 @@ function wireInjuryUI() {
   $('#inj-common').querySelectorAll('[data-common]').forEach((b) => b.addEventListener('click', () => applyCommon(COMMON.find((c) => c.key === b.dataset.common))));
   $('#inj-move').addEventListener('click', () => {
     const i = state.lastQuick; if (i == null || !injuries.list[i]) return;
-    const inj = injuries.list[i]; injuries.remove(i); state.lastQuick = null; renderInjuryList();
+    const inj = injuries.list[i]; recordInj(); injuries.remove(i); state.lastQuick = null; renderInjuryList();
     state.injType = inj.type;
     $('#inj-tap-msg').textContent = `Tap the spot on the ${STRUCTURES[inj.id].short} where the ${typeInfo(injuryKind(inj.id), inj.type).label.replace(/^(?!Grade)./, (c) => c.toLowerCase())} should go.`;
     setStep(3);
@@ -676,8 +719,8 @@ function wireInjuryUI() {
   $('#inj-change').addEventListener('click', () => setStep(1));
   $('#inj-cancel').addEventListener('click', () => setStep(2));
   const forget = () => { state.lastQuick = null; $('#inj-move').hidden = true; };
-  $('#inj-undo').addEventListener('click', () => { injuries.undo(); forget(); renderInjuryList(); });
-  $('#inj-clear').addEventListener('click', () => { injuries.clear(); forget(); renderInjuryList(); });
+  $('#inj-clear').addEventListener('click', () => { if (!injuries.list.length) return; recordInj(); injuries.clear(); forget(); renderInjuryList(); toast('Cleared. Tap Undo to bring the injuries back.'); });
+  mountInjHist();
 }
 
 let lastTap = { t: 0 };
@@ -835,7 +878,7 @@ function applySnap(sn) {
   setVessels(!!sn.ve);
   state.tissues = sn.t ? new Set(sn.t) : null; setJoint(sn.j || null, { fly: false });
   if (sn.c) { camera.position.set(sn.c[0], sn.c[1], sn.c[2]); controls.target.set(sn.c[3], sn.c[4], sn.c[5]); controls.update(); }
-  injuries.set(injuryList(sn).filter((j) => meshes[j.id] && injuries.targets[j.id])); renderInjuryList();
+  injuries.set(injuryList(sn).filter((j) => meshes[j.id] && injuries.targets[j.id])); renderInjuryList(); resetInjHist();
   if (sn.m !== 1) select(sn.sel && meshes[sn.sel] ? sn.sel : null);
   applyVisibility();
 }
