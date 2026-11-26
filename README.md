@@ -48,7 +48,7 @@ left leg opens on the left leg.
    - Hip labrum: labral tear, flap tear
    - Bones (every leg bone, from the hip bone to the toes): hairline crack, displaced break, shattered break, bone bruise, stress fracture
 3. Tap the exact spot. The injury snaps to the nearest surface and gets a numbered red tag with a one-sentence explanation.
-   Use **Undo last**, the **×** next to an injury, or the red **Clear all** button.
+   Use the **Undo** and **Redo** arrows at the top left, the **×** next to an injury, or the red **Clear all** button.
 
 **Show… (one joint, chosen tissues)**
 - **One joint or tissue…** (in the **Display** panel) picks what is drawn:
@@ -287,6 +287,7 @@ smoothed; see `data/bodyparts3d/README.md`. Source files via the npm package
 Each release is tagged (`v0.1.0`, `v0.2.0-preview`, …) and deployed to its own link so earlier versions stay available.
 
 - v0.18.0-preview: Where does it hurt? gets Undo and Redo arrows (one step per spot, stroke, removal or Clear all).
+- v0.19.0-preview: Undo and Redo arrows at the top left on every screen. On the pain page they moved to the top left on phones too; the leg, hand, shoulder, spine and head pages get them in Injury mode (one step per injury added, moved, removed or cleared; Ctrl+Z and Ctrl+Shift+Z work). They replace the old "Undo last" button in the injury panel.
 - v0.16.0-preview: **Where does it hurt?** (`pain.html`): patients mark pain spots and areas on a 3D body, with level, kind
   and notes, and send them to their doctor as a link or picture. Linked from the body-part menu and the home page.
 - v0.15.0-preview: easier to get around (from the v0.14 UX review): home page with body-part tiles and common injuries;
