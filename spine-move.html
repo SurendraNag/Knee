@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en" class="mv">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<title>Spine Movement</title>
+<meta name="theme-color" content="#0b0f14" />
+<meta name="description" content="Move the spine from the neck to the tailbone and push a disc onto a nerve. Educational, not for diagnosis." />
+</head>
+<body>
+<div id="app">
+  <canvas id="c"></canvas>
+
+  <header class="topbar">
+    <div class="brand"><a class="home" href="./" aria-label="Home" title="Home">⌂</a> Spine Movement <span id="version" class="ver"></span></div>
+    <div class="disclaimer" role="note">Educational demo, not for diagnosis</div>
+  </header>
+
+  <nav class="mv-views" aria-label="Views">
+    <button data-view="side">Side</button>
+    <button data-view="back">Back</button>
+    <button data-view="front">Front</button>
+    <button data-view="oblique">Behind, angled</button>
+    <span class="sep"></span>
+    <button data-focus="neck">Neck</button>
+    <button data-focus="low">Low back</button>
+    <button data-focus="all">Whole spine</button>
+  </nav>
+
+  <section id="panel" class="mv-panel" aria-label="Controls">
+    <div class="tabs" role="tablist">
+      <button role="tab" data-tab="bend" aria-selected="true">Bend</button>
+      <button role="tab" data-tab="disc" aria-selected="false">Disc</button>
+      <button role="tab" data-tab="show" aria-selected="false">Show</button>
+      <button id="fold" class="fold" aria-expanded="true" aria-label="Fold the panel" title="Fold the panel">▾</button>
+    </div>
+
+    <div class="tab" data-pane="bend">
+      <div class="where" role="group" aria-label="Which part moves">
+        <span>Moves:</span>
+        <button data-where="all" class="on">Whole spine</button>
+        <button data-where="neck">Neck</button>
+        <button data-where="mid">Mid back</button>
+        <button data-where="low">Low back</button>
+      </div>
+      <label class="sl"><span class="sl-name">Bend</span><span class="end">back</span><input id="flex" type="range" min="-1" max="1" step="0.01" value="0" /><span class="end">forward</span><output id="flex-o"></output></label>
+      <label class="sl"><span class="sl-name">Lean</span><span class="end">right</span><input id="lat" type="range" min="-1" max="1" step="0.01" value="0" /><span class="end">left</span><output id="lat-o"></output></label>
+      <label class="sl"><span class="sl-name">Turn</span><span class="end">right</span><input id="rot" type="range" min="-1" max="1" step="0.01" value="0" /><span class="end">left</span><output id="rot-o"></output></label>
+      <div class="row">
+        <button id="play" aria-pressed="false">Play bending</button>
+        <button id="straight">Stand straight</button>
+      </div>
+      <p class="small">Each vertebra moves as a solid bone; the discs between them squeeze on one side and open on the other. How much each level moves follows typical adult ranges.</p>
+    </div>
+
+    <div class="tab" data-pane="disc" hidden>
+      <div class="row pick">
+        <select id="disc-pick" aria-label="Pick a disc"></select>
+        <button id="disc-top" aria-pressed="false" title="Look down on the disc from above, like a scan slice">Look from above</button>
+      </div>
+      <div id="disc-none" class="lead">Tap a disc on the model, or pick one above. Then drag the disc with your finger or mouse to push it out.</div>
+      <div id="disc-on" hidden>
+        <div class="row dirs" role="group" aria-label="Push the disc toward">
+          <span>Push toward:</span>
+          <button data-dir="back-right">Back right</button>
+          <button data-dir="back">Back middle</button>
+          <button data-dir="back-left">Back left</button>
+          <button data-dir="side-right">Side right</button>
+          <button data-dir="side-left">Side left</button>
+        </div>
+        <label class="sl"><span class="sl-name">How far</span><input id="amount" type="range" min="0" max="1" step="0.01" value="0" /><output id="amount-o"></output></label>
+        <div id="disc-status" class="status" aria-live="polite"></div>
+        <div class="row"><button id="disc-reset">Put the disc back</button></div>
+      </div>
+    </div>
+
+    <div class="tab" data-pane="show" hidden>
+      <div class="row toggles">
+        <button id="t-nerves" aria-pressed="true" class="toggle">Spinal cord and nerves</button>
+        <button id="t-ligs" aria-pressed="false" class="toggle">Spinal ligaments</button>
+        <button id="t-pelvis" aria-pressed="true" class="toggle">Pelvis</button>
+        <button id="t-labels" aria-pressed="true" class="toggle">Labels</button>
+        <button id="t-xray" aria-pressed="false" class="toggle">See through bone</button>
+      </div>
+      <div class="row"><button id="share" title="Copy a link that reopens this exact pose and disc">Copy link</button><button id="snap">Save image</button><a class="btn" href="./spine.html">Full spine page</a></div>
+      <p class="small credit-in">Bones and disc outlines: <a href="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html" target="_blank" rel="noopener">BodyParts3D</a>, © The Database Center for Life Science, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> (smoothed; the tailbone is split off the scanned sacrum). The spinal cord, nerve roots, ligaments and the soft centre of each disc are modelled. Movement and disc shapes are simplified to explain, not measured.</p>
+    </div>
+  </section>
+
+  <div id="labels" class="mv-labels" aria-hidden="true"></div>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <div class="hint">Drag to turn · pinch or scroll to zoom · tap a disc, then drag it</div>
+  <div id="loading"><div class="spinner"></div>Loading the spine…</div>
+</div>
+<script type="module" src="/src/spine-move.js"></script>
+</body>
+</html>

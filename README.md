@@ -130,12 +130,36 @@ with the ribs, breastbone and both hip bones. Both sides are scanned, so there i
   vertebral, intercostal and lumbar arteries, the vena cava and trunk veins, and the skin of the trunk.
 - The 23 intervertebral discs (C2-C3 to L5-S1) follow the scanned discs' outlines but are rebuilt as rings so they can show tears.
 - Modelled: the spinal cord and cauda equina, a pair of nerve roots at every disc level, the anterior and posterior longitudinal
-  ligaments and the posterior sacroiliac ligaments. Not in this version: the coccyx, facet joint cartilage and the smaller spinal ligaments.
+  ligaments and the posterior sacroiliac ligaments. Not in this version: a separate coccyx (it is part of the scanned sacrum; Spine Movement splits it off), facet joint cartilage and the smaller spinal ligaments.
 - Injuries (**preview, waiting for doctor review**): herniated ("slipped") discs and annular tears at any level, fractures of every
   vertebra (compression fractures, spondylolysis, dens fractures), rib, breastbone, sacral and pelvic fractures, and sprains of the
   spinal and sacroiliac ligaments.
 
 Built by `scripts/build-spine.mjs` into `public/spine/` from `data/bodyparts3d/trunk-extra.*` (`scripts/extract-region.mjs <model> trunk`).
+
+## Spine Movement (`spine-move.html`, v0.17.0-preview)
+
+Asked for by an orthopaedic surgeon: the spine from the neck (C1) to the tailbone with the discs and nerves, where the spine and
+the discs can be moved. Open it from the home page, the spine page's **⋯** menu, or `/spine-move.html`.
+
+- **Bend**: sliders for bending forward and back, leaning left and right, and turning; **Moves** limits the movement to the
+  neck, mid back or low back; **Play bending** loops forward and back. Each vertebra is a solid bone turning about a point in the back
+  half of the disc below it, by a share of a typical adult range of motion per level (table `ROM` in `src/spine-move.js`). The discs,
+  spinal cord, nerve roots and ligaments follow by blending the two nearest vertebrae, so a disc squeezes on the side that closes.
+- **Disc**: tap a disc (or pick one), then drag it with a finger or the mouse, or use **Push toward** and **How far**. Up to 30 % it is a
+  bulge, then a protrusion (the outer ring holds), and from 65 % an extrusion (the soft centre breaks through, the ring shows red).
+  Nerves in the way are pushed aside; the one usually affected for that level and direction is marked red and named, with where its
+  symptoms are usually felt: central (spinal cord or cauda equina), paracentral (neck: the exiting root, e.g. C5-C6 to C6; low back:
+  the traversing root, e.g. L4-L5 to L5, L5-S1 to S1), foraminal and far lateral (the exiting root, e.g. L4-L5 to L4), front (no nerve).
+  **Look from above** shows a slice at the disc, like a scan. Bending moves the soft centre away from the side that closes.
+  Several discs can be pushed out at once.
+- **Show**: spinal cord and nerves, spinal ligaments, pelvis, labels, see through bone, **Copy link** (the pose and the discs are kept
+  in the address after `#`) and **Save image**.
+- Simplified and for doctor review: the ranges of motion, the turning points, how far the disc reaches (it is scaled to the room
+  between each disc and the nerve it meets, so it touches at about half way), which root is named, and the bending effect.
+- Data: `public/spine-move/`, a byte-for-byte subset of `public/spine/` (`node scripts/build-spine-move.mjs`, 3 MB instead of 9 MB).
+  The tailbone is split off the scanned sacrum at its narrowest point (BodyParts3D's "Sacrum" includes the coccyx). The soft centre of
+  each disc and the traversing roots of the low back are made in the page.
 
 ## Skull and Face Explainer (`head.html`)
 
