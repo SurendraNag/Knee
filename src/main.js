@@ -15,6 +15,7 @@ import { APP_VERSION } from './version.js';
 import { snapshot, injuryList, encode, decode, listCases, saveCase, deleteCase, renameCase } from './cases.js';
 import { COMMON } from './catalog.js';
 import { mountSearch, mountNav } from './search.js';
+import { createModesty, modestyButton, REGIONS as PRIVATE } from './modesty.js';
 export { APP_VERSION };
 const $ = (s) => document.querySelector(s);
 // ?patient=1: view-only page for patients (no editing of injuries); ?embed=1: inside a doctor's website (iframe)
@@ -38,6 +39,14 @@ scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 scene.environmentIntensity = 0.32;
 
 const camera = new THREE.PerspectiveCamera(30, 1, 0.5, 400);
+
+// Private parts (the leg's skin reaches the groin, the spine page's skin the top of the genitals):
+// blurred unless a clinician shows them; a patient link shows them only if the clinician chose so when sharing.
+const modesty = createModesty(renderer, {
+  region: PRIVATE[LIMB] || null,
+  active: () => !!meshes.skin?.visible,
+  occluders: () => Object.values(meshes).filter((m) => m.visible && !m.material.transparent),
+});
 const HOME_TARGET = new THREE.Vector3(...CFG.home.target);
 const HOME_DIST = CFG.home.dist;
 const HOME_DIR = new THREE.Vector3(...CFG.home.dir);
@@ -856,6 +865,7 @@ function wireUI() {
   const reg = $('#region');
   reg.innerHTML = '<option value="">Go to…</option>' + Object.entries(REGIONS).map(([k, r]) => `<option value="${k}">${r.label}</option>`).join('');
   reg.addEventListener('change', () => goRegion(reg.value));
+  if (modesty.enabled && !PATIENT) $('#display-panel .pop-row').appendChild(modestyButton(modesty));
   buildFind();
   wireInjuryUI();
   wireShareUI();
@@ -866,7 +876,7 @@ const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&
 function toast(msg, ms = 2600) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => { t.hidden = true; }, ms); }
 function openDialog(title, html) { $('#dlg-title').textContent = title; $('#dlg-body').innerHTML = html; $('#dlg').classList.remove('hidden'); }
 function closeDialog() { $('#dlg').classList.add('hidden'); }
-const getSnap = () => snapshot({ state, camera, controls, injuries });
+const getSnap = () => ({ ...snapshot({ state, camera, controls, injuries }), pp: modesty.enabled && modesty.shown ? 1 : undefined });
 function applySnap(sn) {
   anim = null;
   setSide(sn.sd ? 'left' : 'right');
@@ -880,19 +890,23 @@ function applySnap(sn) {
   if (sn.c) { camera.position.set(sn.c[0], sn.c[1], sn.c[2]); controls.target.set(sn.c[3], sn.c[4], sn.c[5]); controls.update(); }
   injuries.set(injuryList(sn).filter((j) => meshes[j.id] && injuries.targets[j.id])); renderInjuryList(); resetInjHist();
   if (sn.m !== 1) select(sn.sel && meshes[sn.sel] ? sn.sel : null);
+  modesty.shown = !!sn.pp; $('#private-parts')?.repaint();
   applyVisibility();
 }
 // add ?name=1 to a link, before its #hash
 function withParam(url, name) { const u = new URL(url); u.searchParams.set(name, '1'); return u.toString(); }
 function iframeCode(src) { return `<iframe src="${src}" title="${CFG.title}" width="100%" height="640" style="border:0;border-radius:12px;max-width:1100px" allow="fullscreen; clipboard-write; web-share" loading="lazy"></iframe>`; }
 async function shareLink(snap = getSnap()) { return `${location.origin}${location.pathname}${PATIENT ? '?patient=1' : ''}#c=${await encode(snap)}`; }
-async function openShare(snap) {
+async function openShare(snap = getSnap()) {
   closePopovers();
-  const url = await shareLink(snap), purl = withParam(url, 'patient');
+  // links never show the private parts unless the clinician ticks the box (only offered when they are shown now)
+  const asked = !!snap.pp, sn = { ...snap, pp: undefined };
+  let url = await shareLink(sn), purl = withParam(url, 'patient');
   let copied = false; try { await navigator.clipboard.writeText(purl); copied = true; } catch { /* clipboard blocked: the box below still has it */ }
   openDialog('Share this view', `<h3 class="first">Send to your patient</h3>
     <p class="note">${copied ? '<b>Patient link copied.</b> ' : ''}View-only: your patient can turn, zoom and tap to read, and cannot change the injuries or leave this page by accident.
     Everything is inside the link itself; nothing is stored on a server and it holds no patient details.</p>
+    ${asked ? '<label class="share-private"><input type="checkbox" id="share-pp"> Show the private parts in these links too (they are blurred unless you tick this)</label>' : ''}
     <div class="row"><input type="text" id="share-patient" readonly value="${esc(purl)}" aria-label="Patient link"><button data-copy="share-patient" class="primary">Copy</button></div>
     ${navigator.share ? '<button id="share-native" class="primary wide">Send to patient…</button>' : ''}
     <h3>For you</h3>
@@ -902,8 +916,15 @@ async function openShare(snap) {
     <p class="note">Paste this code into a page of the clinic website. Use the second one for patients (view-only).</p>
     <div class="row"><input type="text" id="share-embed" readonly value="${esc(iframeCode(withParam(url, 'embed')))}" aria-label="Embed code"><button data-copy="share-embed">Copy</button></div>
     <div class="row"><input type="text" id="share-embed-p" readonly value="${esc(iframeCode(withParam(withParam(url, 'embed'), 'patient')))}" aria-label="Embed code for patients"><button data-copy="share-embed-p">Copy</button></div></details>`);
+  $('#share-pp')?.addEventListener('change', async (e) => {
+    sn.pp = e.target.checked ? 1 : undefined;
+    url = await shareLink(sn); purl = withParam(url, 'patient');
+    $('#share-patient').value = purl; $('#share-url').value = url;
+    $('#share-embed').value = iframeCode(withParam(url, 'embed')); $('#share-embed-p').value = iframeCode(withParam(withParam(url, 'embed'), 'patient'));
+    toast(e.target.checked ? 'These links now show the private parts' : 'These links blur the private parts');
+  });
   $('#dlg-body').querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', async () => { const inp = $('#' + b.dataset.copy); try { await navigator.clipboard.writeText(inp.value); toast('Copied'); } catch { inp.select(); toast('Press Ctrl+C or Cmd+C to copy'); } }));
-  $('#dlg-body').querySelectorAll('input').forEach((i) => i.addEventListener('focus', (e) => e.target.select()));
+  $('#dlg-body').querySelectorAll('input[type="text"]').forEach((i) => i.addEventListener('focus', (e) => e.target.select()));
   $('#share-native')?.addEventListener('click', () => navigator.share({ title: CFG.title, url: purl }).catch(() => {}));
 }
 function wrapText(g, text, maxW) {
@@ -912,7 +933,7 @@ function wrapText(g, text, maxW) {
   if (line) lines.push(line); return lines;
 }
 async function saveImage() {
-  renderer.render(scene, camera);
+  modesty.render(scene, camera);
   const w = canvas.width, h = canvas.height, k = w / canvas.clientWidth;
   const list = injuries ? injuries.list : [];
   const side = list.length ? Math.round(340 * k) : 0, foot = Math.round(58 * k);
@@ -1065,7 +1086,7 @@ function loop(now) {
   updateLabels();
   updateCube();
   if (injuries) injuries.syncExtras();
-  renderer.render(scene, camera);
+  modesty.render(scene, camera);
   frames++;
   if (now - fpsT > 1000) { fpsEl.textContent = `${Math.round((frames * 1000) / (now - fpsT))} fps`; frames = 0; fpsT = now; }
   requestAnimationFrame(loop);
@@ -1083,7 +1104,7 @@ function loop(now) {
   $('#inj-picker').innerHTML = '<option value="">Choose a structure…</option>' + groupedInjuryOptions();
   applyVisibility();
   // test hooks
-  window.__knee = { meshes, setJoint, setTissues, openShow, getSnap, applySnap, shareLink, saveImage, openCases, openShare, goRegion, REGIONS, setVessels, injuries, state, setMode, chooseInjTarget, renderInjuryList, THREE, camera, controls, flyTo, VIEWS, setView,
+  window.__knee = { modesty, meshes, setJoint, setTissues, openShow, getSnap, applySnap, shareLink, saveImage, openCases, openShare, goRegion, REGIONS, setVessels, injuries, state, setMode, chooseInjTarget, renderInjuryList, THREE, camera, controls, flyTo, VIEWS, setView,
     look(i, dist = 9, dir) { const inj = injuries.list[i]; const p = injuries.tagPoint(inj); const n = dir ? new THREE.Vector3(...dir).normalize() : new THREE.Vector3().fromArray(inj.anchor.n);
       anim = null; controls.target.copy(p); camera.position.copy(p).addScaledVector(n, dist); controls.update(); },
     addAt(id, type, frac, side = 0) { // frac along a swept structure, or [x,y,z] near a bone

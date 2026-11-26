@@ -228,6 +228,21 @@ A page for patients to show their doctor where they feel pain, on a plain 3D bod
 - Everything is inside the link (`#p=...`) and the picture. Nothing is stored on a server, and the page asks patients not
   to type their name or other ID.
 
+## Private parts (blurred unless a clinician shows them)
+
+The genitals (male and female) are blurred everywhere they can be seen: the whole-body explorer (skin, and the male
+organs and vessels), the skin layer of the Leg and Spine and Pelvis pages, and the patient's Where does it hurt? body.
+The blur is drawn into the 3D picture itself, so saved images are blurred too.
+
+- **Show them (clinicians):** Whole body: *Private parts: blurred* under the list of systems. Leg and Spine pages: the
+  same switch in **Display**. Tap it twice (the first tap asks "Show private parts? Tap again"). It is off again every
+  time a page is opened.
+- **Patient links and website codes** stay blurred. Only when the private parts are shown at the time of sharing does
+  the Share box offer a tick box, *Show the private parts in these links too*; it starts unticked.
+- **Patient view:** has no switch, so a patient cannot turn the blur off. Where does it hurt? is always blurred; a pain
+  mark there still shows as colour under the blur, and its number tag stays sharp.
+- There is no sign-in yet, so the switch is a clinician setting, not a lock.
+
 ## On a clinic website (embedding) and patient links
 
 The **Share** dialog also gives:
@@ -286,6 +301,8 @@ smoothed; see `data/bodyparts3d/README.md`. Source files via the npm package
 
 Each release is tagged (`v0.1.0`, `v0.2.0-preview`, …) and deployed to its own link so earlier versions stay available.
 
+- v0.20.0-preview: genitals blurred by default on every page that shows them (body, leg and spine skin, pain map,
+  saved images, patient and share links), with a clinician-only *Private parts* switch.
 - v0.18.0-preview: Where does it hurt? gets Undo and Redo arrows (one step per spot, stroke, removal or Clear all).
 - v0.19.0-preview: Undo and Redo arrows at the top left on every screen. On the pain page they moved to the top left on phones too; the leg, hand, shoulder, spine and head pages get them in Injury mode (one step per injury added, moved, removed or cleared; Ctrl+Z and Ctrl+Shift+Z work). They replace the old "Undo last" button in the injury panel.
 - v0.16.0-preview: **Where does it hurt?** (`pain.html`): patients mark pain spots and areas on a 3D body, with level, kind
