@@ -38,3 +38,6 @@ html.home body { background: radial-gradient(ellipse 120% 700px at 50% -10%, #1d
   .hero .sub { font-size: 15px; }
   .tiles { grid-template-columns: 1fr; }
 }
+
+/* "Where does it hurt?" link (patients) */
+.how p a { color: #8fb8ff; font-weight: 600; }

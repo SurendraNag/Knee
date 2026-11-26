@@ -1,0 +1,84 @@
+/* "Where does it hurt?" page */
+.pain-app .pain-panel { top: calc(56px + env(safe-area-inset-top)); width: 360px; max-height: calc(100% - 140px); padding: 14px 16px 16px; }
+.pain-panel .lead { font-size: 14.5px; margin: 0 0 10px; }
+.pain-panel h3 { margin: 14px 0 6px; }
+.seg { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.seg button { flex: 1; border: 0; border-radius: 0; min-height: 40px; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg.small button { min-height: 32px; padding: 4px 8px; font-size: 13px; }
+.brush-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-size: 13px; color: var(--muted); }
+.brush-row .seg { flex: 1; }
+.pain-panel .num { color: #fff; font-weight: 700; border-radius: 50%; width: 26px; height: 26px; display: grid; place-items: center; font-size: 13px; flex: none; text-shadow: 0 1px 2px rgba(0,0,0,.55); }
+.editor { border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.04); border-radius: 12px; padding: 12px; margin-top: 12px; }
+.ed-head { display: flex; gap: 10px; align-items: flex-start; }
+.ed-head .num { width: 32px; height: 32px; font-size: 15px; margin-top: 2px; }
+.ed-head h2 { margin: 2px 0 6px; font-size: 18px; }
+.lvl-label { display: block; font-size: 14.5px; margin-top: 8px; }
+.lvl-word { color: var(--muted); margin-left: 4px; }
+.lvl { width: 100%; margin: 10px 0 2px; height: 28px; -webkit-appearance: none; appearance: none; background: transparent; --thumb: #f08c2e; }
+.lvl::-webkit-slider-runnable-track { height: 10px; border-radius: 6px; background: linear-gradient(90deg, #f7e26b, #f5c542 30%, #f08c2e 50%, #e5484d 70%, #9e0f2e); }
+.lvl::-moz-range-track { height: 10px; border-radius: 6px; background: linear-gradient(90deg, #f7e26b, #f5c542 30%, #f08c2e 50%, #e5484d 70%, #9e0f2e); }
+.lvl::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%; background: var(--thumb); border: 3px solid #fff; margin-top: -9px; box-shadow: 0 1px 6px rgba(0,0,0,.5); }
+.lvl::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: var(--thumb); border: 3px solid #fff; }
+.lvl-ends { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { min-height: 34px; padding: 5px 11px; font-size: 13.5px; border-radius: 18px; }
+.note-label, .about label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 5px; }
+.pain-panel input[type=text], .pain-app .dlg textarea { width: 100%; font: inherit; font-size: 14.5px; color: var(--text); background: rgba(255,255,255,0.06); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; resize: vertical; }
+.pain-panel select, .pain-app .dlg select { max-width: none; width: 100%; }
+.pain-app .dlg .about label:first-child { margin-top: 4px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+button.danger { border-color: rgba(229,72,77,.6); color: #ffb3b5; }
+button.big { width: 100%; min-height: 48px; font-size: 16px; }
+#marks { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+#marks li { display: flex; gap: 8px; align-items: center; border: 1px solid transparent; border-radius: 10px; padding: 2px; }
+#marks li.sel { border-color: var(--accent); background: rgba(61,139,255,0.08); }
+#marks .mk { flex: 1; min-width: 0; text-align: left; background: transparent; border: 0; padding: 4px 2px; display: flex; flex-direction: column; min-height: 0; }
+#marks .mk b { font-size: 14px; font-weight: 650; }
+#marks .mk small { font-size: 12.5px; color: var(--muted); line-height: 1.35; }
+#marks .rm { min-height: 28px; width: 28px; padding: 0; border-radius: 50%; flex: none; }
+.empty { font-size: 13.5px; color: var(--muted); margin: 0; }
+.send-row { display: grid; gap: 8px; margin: 14px -16px -16px; padding: 10px 16px 16px; position: sticky; bottom: 0; background: linear-gradient(rgba(20,26,34,0), #141a22 12px); }
+@media (max-width: 760px) { .send-row { margin: 10px -12px -12px; padding: 8px 12px 12px; } }
+.from-patient { margin-bottom: 6px; }
+.fp-meta { font-size: 14px; margin: 4px 0 0 !important; }
+.fp-msg { margin-top: 12px !important; padding: 10px 12px; background: rgba(255,255,255,0.05); border-left: 3px solid var(--accent); border-radius: 6px; font-size: 14.5px; white-space: pre-wrap; }
+.pain-app .tag { position: absolute; transform: translate(-50%, -50%); box-shadow: 0 0 0 2px #fff, 0 2px 8px rgba(0,0,0,.6); width: 24px; height: 24px; border-radius: 50%;
+  display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 12.5px; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+#tags { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.edge-side { position: absolute; top: 50%; font-size: 12px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); pointer-events: none;
+  background: rgba(12,16,22,0.6); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; }
+.edge-side.left { left: 16px; } .edge-side.right { right: 392px; }
+.send-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 12px 0 4px; }
+.send-grid .btnlink, .send-grid button { justify-content: center; text-align: center; font-size: 14px; padding: 8px 6px; }
+.summary { white-space: pre-wrap; font: 13px/1.45 system-ui, sans-serif; background: rgba(255,255,255,0.05); border: 1px solid var(--line); border-radius: 10px; padding: 10px; max-height: 180px; overflow: auto; margin: 6px 0; }
+.pain-app .dlg { width: 400px; }
+.pain-app .credit { top: auto; bottom: calc(76px + env(safe-area-inset-bottom)); max-width: 300px; }
+.pain-app .toolbar { right: 392px; }
+.pain-app .toolbar #zin, .pain-app .toolbar #zout { width: 40px; padding: 0; font-size: 20px; }
+.pain-received .pain-panel .lead { display: none; }
+@media (max-width: 760px) {
+  .pain-app .pain-panel { left: 8px; right: 8px; width: auto; top: auto; bottom: calc(var(--tbh, 50px) + 26px + env(safe-area-inset-bottom)); max-height: 36%; padding: 10px 12px 12px; }
+  .pain-app .toolbar { left: 8px; right: 8px; bottom: calc(20px + env(safe-area-inset-bottom)); padding: 5px; gap: 5px; flex-wrap: nowrap; }
+  .pain-app .toolbar .views { width: auto; flex: 1; }
+  .pain-app .toolbar [data-view=left], .pain-app .toolbar [data-view=right], .pain-app .toolbar #zin, .pain-app .toolbar #zout { display: none; }
+  .pain-app .toolbar #region { max-width: 130px; min-height: 36px; padding: 6px 26px 6px 10px; font-size: 13px; }
+  .pain-app .views button { padding: 6px 2px; font-size: 13px; min-height: 36px; }
+  .pain-panel .lead { font-size: 13.5px; margin-bottom: 8px; }
+  .seg button { min-height: 36px; }
+  .pain-app .disclaimer { font-size: 11px; padding: 3px 8px; }
+  .pain-app .credit { bottom: calc(2px + env(safe-area-inset-bottom)); font-size: 8.5px; }
+  .edge-side { top: 34%; font-size: 10.5px; padding: 3px 6px; } .edge-side.left { left: 8px; } .edge-side.right { right: 8px; }
+  .pain-panel h3 { margin: 10px 0 5px; }
+  .pain-app .dlg { left: 8px; right: 8px; width: auto; max-height: 80%; bottom: calc(24px + env(safe-area-inset-bottom)); }
+  .send-grid { grid-template-columns: 1fr 1fr; } .send-grid .btnlink { grid-column: 1 / -1; }
+  .ed-head h2 { font-size: 16px; }
+  .chips button { min-height: 32px; padding: 4px 10px; font-size: 13px; }
+}
+
+.seg button.on:hover:not(:disabled), .chips button[aria-pressed="true"]:hover { background: var(--accent); }
+@media (max-width: 760px) {
+  .pain-received .send-row { grid-template-columns: repeat(3, 1fr); position: static; margin: 10px 0 0; padding: 0; background: none; }
+  .pain-received .send-row button { min-height: 40px; font-size: 13px; padding: 6px 4px; }
+  .pain-received .from-patient { order: 0; }
+}

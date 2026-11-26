@@ -89,7 +89,8 @@ export function mountNav(container, here) {
   const sel = document.createElement('select');
   sel.id = 'part-nav'; sel.setAttribute('aria-label', 'Body part');
   const embed = new URLSearchParams(location.search).get('embed') === '1' || window.self !== window.top;
-  sel.innerHTML = PAGES.filter((p) => !(embed && p.limb === 'body')).map((p) => `<option value="${p.page}"${p.limb === here ? ' selected' : ''}>${esc(innerWidth <= 430 ? p.short : p.name)}</option>`).join('');
+  sel.innerHTML = PAGES.filter((p) => !(embed && p.limb === 'body')).map((p) => `<option value="${p.page}"${p.limb === here ? ' selected' : ''}>${esc(innerWidth <= 430 ? p.short : p.name)}</option>`).join('')
+    + `<option value="pain.html"${here === 'pain' ? ' selected' : ''}>${innerWidth <= 430 ? 'Where it hurts' : 'Where it hurts (for patients)'}</option>`;
   sel.addEventListener('change', () => { location.href = `./${sel.value}${keepParams()}`; });
   container.prepend(home, sel);
   return sel;

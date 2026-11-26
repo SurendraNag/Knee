@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<title>Where does it hurt?</title>
+<meta name="description" content="Mark where you feel pain on a 3D body and send it to your doctor." />
+<meta name="theme-color" content="#0b0f14" />
+</head>
+<body>
+<div id="app" class="pain-app">
+  <canvas id="c"></canvas>
+
+  <header class="topbar">
+    <div class="brand">Where does it hurt? <span class="side" role="group" aria-label="Body"><button data-sex="male">Male</button><button data-sex="female">Female</button></span> <span id="version" class="ver"></span></div>
+    <div class="disclaimer" role="note">Not for emergencies or diagnosis</div>
+  </header>
+
+  <div id="edge-r" class="edge-side left" aria-hidden="true">Your right</div>
+  <div id="edge-l" class="edge-side right" aria-hidden="true">Your left</div>
+  <div id="tags"></div>
+
+  <section id="panel" class="info pain-panel" aria-live="polite">
+    <div id="from-patient" class="from-patient" hidden>
+      <div class="eyebrow">Pain map sent to you</div>
+      <p id="fp-meta" class="fp-meta"></p>
+    </div>
+    <div id="tools-wrap">
+      <p class="lead" id="lead">Tap the body where it hurts. Use <b>Area</b> to paint a bigger patch.</p>
+      <div class="seg" role="group" aria-label="Marking tool">
+        <button data-tool="point" class="on" aria-pressed="true">Spot</button>
+        <button data-tool="area" aria-pressed="false">Area</button>
+        <button data-tool="turn" aria-pressed="false">Turn only</button>
+      </div>
+      <div id="brush-row" class="brush-row" hidden>
+        <span>Brush</span>
+        <div class="seg small" role="group" aria-label="Brush size">
+          <button data-brush="0.025">Small</button><button data-brush="0.045" class="on">Medium</button><button data-brush="0.075">Large</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="editor" class="editor" hidden>
+      <div class="ed-head"><span class="num" id="ed-num">1</span><div><div class="eyebrow" id="ed-kind">Spot</div><h2 id="ed-where">Right knee</h2></div></div>
+      <label class="lvl-label" for="ed-level">How bad is it? <b id="ed-level-val">5</b> out of 10 <span id="ed-level-word" class="lvl-word"></span></label>
+      <input id="ed-level" class="lvl" type="range" min="0" max="10" step="1" value="5" />
+      <div class="lvl-ends"><span>0 no pain</span><span>10 worst possible</span></div>
+      <h3>What does it feel like?</h3>
+      <div id="ed-types" class="chips"></div>
+      <h3>When is it worse?</h3>
+      <div id="ed-when" class="chips"></div>
+      <label class="note-label" for="ed-note">Anything else about this spot? (optional)</label>
+      <input id="ed-note" type="text" maxlength="160" placeholder="e.g. hurts on stairs, started after a fall" />
+      <div class="actions">
+        <button id="ed-done" class="primary">Done</button>
+        <button id="ed-more" hidden>Paint more</button>
+        <button id="ed-del" class="danger">Remove</button>
+      </div>
+    </div>
+
+    <div id="listwrap">
+      <h3 id="list-title">Your marks</h3>
+      <p id="empty" class="empty">No marks yet.</p>
+      <ol id="marks"></ol>
+      <div class="actions" id="list-actions" hidden><button id="undo">Undo last</button><button id="clear" class="danger">Clear all</button></div>
+    </div>
+
+    <div id="about-home" hidden><div id="about" class="about">
+      <label for="started">When did it start?</label>
+      <select id="started">
+        <option value="">Choose…</option>
+        <option value="1">Today</option><option value="2">In the last few days</option><option value="3">1 to 4 weeks ago</option>
+        <option value="4">1 to 3 months ago</option><option value="5">3 to 12 months ago</option><option value="6">More than a year ago</option>
+      </select>
+      <label for="msg">Message for your doctor (optional)</label>
+      <textarea id="msg" maxlength="600" rows="3" placeholder="e.g. what you were doing when it started, what helps"></textarea>
+      <p class="note">Please do not type your name, date of birth or other ID here. Your doctor will know it is from you by the message or email you send it in.</p>
+    </div></div>
+    <p id="fp-msg" class="fp-msg" hidden></p>
+
+    <div class="send-row">
+      <button id="send" class="primary big">Send to my doctor</button>
+      <button id="edit-copy" hidden>Edit these marks</button>
+      <button id="new-map" hidden>Start a new map</button>
+    </div>
+  </section>
+
+  <section id="dlg" class="info dlg hidden" role="dialog" aria-modal="false" aria-labelledby="dlg-title">
+    <button id="dlg-close" class="close" aria-label="Close">×</button>
+    <h2 id="dlg-title"></h2>
+    <div id="dlg-body"></div>
+  </section>
+
+  <div class="toolbar">
+    <div class="group views" role="group" aria-label="Views">
+      <button data-view="front">Front</button>
+      <button data-view="back">Back</button>
+      <button data-view="left" title="Look at your left side">Your left</button>
+      <button data-view="right" title="Look at your right side">Your right</button>
+      <button id="reset" title="Whole body">Reset</button>
+    </div>
+    <div class="group">
+      <select id="region" aria-label="Zoom to a part of the body"></select>
+      <button id="zin" aria-label="Zoom in" title="Zoom in">+</button>
+      <button id="zout" aria-label="Zoom out" title="Zoom out">−</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+  <div class="credit">Body: <a href="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html" target="_blank" rel="noopener">BodyParts3D</a>, © The Database Center for Life Science, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> (modified). Nothing you mark is stored on a server.</div>
+  <div id="loading"><div class="spinner"></div><div>Loading the body…</div></div>
+</div>
+<script type="module" src="./src/pain.js"></script>
+</body>
+</html>
