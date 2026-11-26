@@ -7,6 +7,7 @@ import { MeshBVH, acceleratedRaycast } from 'three-mesh-bvh';
 import './style.css';
 import './pain.css';
 import { APP_VERSION } from './version.js';
+import { createModesty, REGIONS as PRIVATE } from './modesty.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 const $ = (s) => document.querySelector(s);
@@ -140,6 +141,9 @@ const scene = new THREE.Scene();
 scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment(), 0.04).texture;
 scene.environmentIntensity = 0.55;
 const camera = new THREE.PerspectiveCamera(32, 1, 0.01, 50);
+// the genitals are always blurred here (on screen and in the picture sent to the doctor); pain marks there still show as colour
+let modestySex = 'male';
+const modesty = createModesty(renderer, { region: PRIVATE.bodyMale, active: () => !!body, occluders: () => (body ? [body.mesh] : []) });
 scene.add(camera);
 const key = new THREE.DirectionalLight(0xfff4ea, 1.7); key.position.set(-1.2, 2.2, 3); camera.add(key); camera.add(key.target); key.target.position.set(0, 0, -3);
 const rim = new THREE.DirectionalLight(0xb9d3ff, 0.6); rim.position.set(2, 1, -2); camera.add(rim); camera.add(rim.target); rim.target.position.set(0, 0, -3);
@@ -547,7 +551,7 @@ async function picture() {
   const shots = [];
   for (const [name, dir] of [['Front', VIEWS.front], ['Back', VIEWS.back]]) {
     camera.position.copy(HOME.t).addScaledVector(dir.clone().normalize(), 3.75); camera.lookAt(HOME.t); camera.updateMatrixWorld();
-    renderer.render(scene, camera);
+    modesty.setRegion(SEX === 'female' ? PRIVATE.bodyFemale : PRIVATE.bodyMale); modestySex = SEX; modesty.render(scene, camera);
     const c = document.createElement('canvas'); c.width = W * pr; c.height = H * pr; const g = c.getContext('2d'); g.drawImage(canvas, 0, 0);
     // number tags
     marks.forEach((m, i) => {
@@ -704,7 +708,9 @@ addEventListener('resize', resize);
 new ResizeObserver(() => frame()).observe($('#panel'));
 
 function loop(now) {
-  stepAnim(now); controls.update(); updateTags(); renderer.render(scene, camera);
+  stepAnim(now); controls.update(); updateTags();
+  if (modestySex !== SEX) { modestySex = SEX; modesty.setRegion(SEX === 'female' ? PRIVATE.bodyFemale : PRIVATE.bodyMale); }
+  modesty.render(scene, camera);
   requestAnimationFrame(loop);
 }
 (async () => {

@@ -295,3 +295,9 @@ button.primary:hover:not(:disabled), #share:hover { background: #5a9dff; }
 /* in injury mode the "Showing" chip moves beside the Undo/Redo arrows */
 html:not(.patient) body.mode-injury .show-chip { left: var(--hist-right, 232px); transform: none; top: var(--hist-top, 104px); max-width: calc(100% - var(--hist-right, 232px) - 16px); }
 @media (min-width: 761px) { html:not(.patient) body.mode-injury .show-chip { max-width: calc(100% - var(--hist-right, 232px) - 372px); } }
+/* Private parts switch (clinicians): blurred by default */
+.sys-private { width: 100%; margin-top: 8px; min-height: 34px; font-size: 13px; text-align: left; padding: 6px 10px; }
+.private-toggle[aria-pressed="true"] { background: rgba(229,160,58,0.18); border-color: rgba(229,160,58,0.8); color: #ffd9a0; }
+.patient .private-toggle { display: none !important; }
+.share-private { display: flex; gap: 8px; align-items: flex-start; margin: 10px 0 4px; font-size: 13px; color: #ffd9a0; }
+.share-private input { margin-top: 2px; }

@@ -7,6 +7,7 @@ import './style.css';
 import { APP_VERSION } from './version.js';
 import { pageOf, keepParams } from './catalog.js';
 import { mountSearch, mountNav } from './search.js';
+import { createModesty, modestyButton, REGIONS as PRIVATE } from './modesty.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 const $ = (s) => document.querySelector(s);
@@ -46,6 +47,16 @@ function resize() {
   camera.fov = w < h ? 44 : 32; camera.updateProjectionMatrix();
 }
 addEventListener('resize', resize); resize();
+
+// ---------- Private parts: blurred unless a clinician shows them ----------
+const GENITAL = /penis|glans|testis|testicular|epididym|scrot|spermatic|pubic hair/i;
+const modesty = createModesty(renderer, {
+  region: SEX === 'female' ? PRIVATE.bodyFemale : PRIVATE.bodyMale,
+  active: () => {
+    if (ui.only && ui.selected) { const p = packs[ui.selected.pack].info.parts[ui.selected.i]; return ui.selected.pack === 'skin' || GENITAL.test(p.name); }
+    return ['skin', ...(SEX === 'male' ? ['organs', 'arteries', 'veins'] : [])].some((id) => packs[id]?.mesh?.visible);
+  },
+});
 
 // ---------- Camera flights ----------
 let anim = null;
@@ -324,6 +335,7 @@ function buildSystemsUI() {
     b.onclick = () => setSystem(info.id, !packs[info.id].on);
     list.appendChild(b);
   }
+  const pp = modestyButton(modesty); pp.classList.add('sys-private'); list.after(pp);
   $('#sys-toggle').onclick = () => { const c = document.querySelector('.systems').classList.toggle('collapsed'); $('#sys-toggle').textContent = c ? 'Show' : 'Hide'; $('#sys-toggle').setAttribute('aria-expanded', String(!c)); };
   if (innerWidth < 700) $('#sys-toggle').click();
 }
@@ -342,7 +354,7 @@ $('#region').onchange = (e) => { goRegion(e.target.value); e.target.value = ''; 
 const fpsEl = $('#fps'); let frames = 0, fpsT = performance.now();
 if (qs.has('fps')) fpsEl.hidden = false;
 function loop(now) {
-  stepAnim(now); controls.update(); renderer.render(scene, camera);
+  stepAnim(now); controls.update(); modesty.render(scene, camera);
   frames++; if (now - fpsT > 1000) { fpsEl.textContent = `${Math.round((frames * 1000) / (now - fpsT))} fps`; frames = 0; fpsT = now; }
   requestAnimationFrame(loop);
 }
@@ -361,7 +373,7 @@ function loop(now) {
   if (qs.has('region')) { goRegion(qs.get('region')); anim.dur = 1; }
   if (qs.has('find')) { const a = allParts.find((x) => x.lname === qs.get('find').toLowerCase()); if (a) { await setSystem(a.pack, true); select(a.pack, a.i, { fly: true }); anim.dur = 1; if (qs.has('only')) $('#act-only').click(); if (anim) anim.dur = 1; } }
   $('#loading').classList.add('done');
-  window.__body = { SEX, packs, select, setSystem, camera, controls, flyTo, goRegion };
+  window.__body = { SEX, modesty, packs, select, setSystem, camera, controls, flyTo, goRegion };
   window.__ready = { loadMs: Math.round(performance.now() - t0) };
   requestAnimationFrame(loop);
   // warm the muscles in the background so the first toggle is quick
