@@ -354,11 +354,32 @@ $('#ed-level').addEventListener('input', (e) => { const m = marks[editing]; if (
 $('#ed-note').addEventListener('input', (e) => { const m = marks[editing]; if (m) m.note = e.target.value.slice(0, 160); });
 $('#ed-done').addEventListener('click', () => closeEditor());
 $('#ed-more').addEventListener('click', () => { setTool('area'); toast('Drag over the body to add to this area'); });
-$('#ed-del').addEventListener('click', () => { if (editing < 0) return; marks.splice(editing, 1); closeEditor(); });
-$('#undo').addEventListener('click', () => { marks.pop(); closeEditor(); });
+$('#ed-del').addEventListener('click', () => { if (editing < 0) return; record(); marks.splice(editing, 1); closeEditor(); });
+
+// ---------- undo and redo: every spot, every painted stroke, every removal and Clear all is one step ----------
+const undoStack = [], redoStack = [];
+const copyMarks = (ms) => ms.map((m) => ({ ...m, pts: m.pts.map((p) => p.clone()), nrm: m.nrm.map((n) => n.clone()), types: new Set(m.types), when: new Set(m.when) }));
+const state = () => ({ marks: copyMarks(marks), editing });
+function record() { undoStack.push(state()); if (undoStack.length > 200) undoStack.shift(); redoStack.length = 0; updateHist(); }
+function restore(st) {
+  marks = copyMarks(st.marks);
+  if (st.editing >= 0 && marks[st.editing]) openEditor(st.editing); else closeEditor();
+  updateHist();
+}
+function undo() { if (stroke || !undoStack.length) return; redoStack.push(state()); restore(undoStack.pop()); }
+function redo() { if (stroke || !redoStack.length) return; undoStack.push(state()); restore(redoStack.pop()); }
+function updateHist() { $('#h-undo').disabled = !undoStack.length; $('#h-redo').disabled = !redoStack.length; }
+$('#h-undo').addEventListener('click', undo);
+$('#h-redo').addEventListener('click', redo);
+addEventListener('keydown', (e) => {
+  if (viewOnly || !(e.ctrlKey || e.metaKey) || e.altKey) return;
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName) && document.activeElement.type !== 'range') return; // let text boxes undo their own typing
+  const k = e.key.toLowerCase();
+  if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); } else if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); redo(); }
+});
 $('#clear').addEventListener('click', (e) => {
   const b = e.currentTarget; if (!b.dataset.sure) { b.dataset.sure = '1'; b.textContent = 'Clear all?'; setTimeout(() => { delete b.dataset.sure; b.textContent = 'Clear all'; }, 2500); return; }
-  delete b.dataset.sure; b.textContent = 'Clear all'; marks = []; closeEditor();
+  delete b.dataset.sure; b.textContent = 'Clear all'; record(); marks = []; closeEditor(); toast('Cleared. Tap Undo to bring the marks back.');
 });
 function renderList() {
   const ol = $('#marks');
@@ -370,7 +391,7 @@ function renderList() {
   ol.querySelectorAll('li').forEach((li) => {
     const i = Number(li.dataset.i);
     li.querySelector('[data-act=go]').addEventListener('click', () => { lookAt(i); if (!viewOnly) openEditor(i); });
-    li.querySelector('[data-act=rm]')?.addEventListener('click', () => { marks.splice(i, 1); closeEditor(); });
+    li.querySelector('[data-act=rm]')?.addEventListener('click', () => { record(); marks.splice(i, 1); closeEditor(); });
   });
   // number tags on the body
   $('#tags').innerHTML = marks.map((m, i) => `<div class="tag" style="background:${css(levelColor(m.level))}">${i + 1}</div>`).join('');
@@ -420,6 +441,7 @@ canvas.addEventListener('pointerdown', (e) => {
   const p = hitAt(e); if (!p) return;
   controls.enabled = false; // painting, not turning (runs before OrbitControls: capture phase)
   canvas.setPointerCapture(e.pointerId);
+  record(); // the stroke about to be painted is one undo step
   const cont = editing >= 0 && marks[editing]?.kind === 'area';
   if (cont) stroke = { m: marks[editing], fresh: false, n0: marks[editing].pts.length };
   else { const m = { kind: 'area', pts: [], nrm: [], r: brush, level: 5, types: new Set(), when: new Set(), note: '' }; marks.push(m); stroke = { m, fresh: true, n0: 0 }; editing = marks.length - 1; }
@@ -444,7 +466,7 @@ function snapToSkin(q) { const r = body.mesh.geometry.boundsTree.closestPointToP
 function endStroke(cancel) {
   const s = stroke; stroke = null; controls.enabled = true;
   if (!s) return;
-  if (cancel && s.fresh && s.m.pts.length < 3) { marks.splice(marks.indexOf(s.m), 1); editing = -1; repaint(); renderList(); return; }
+  if (cancel && s.m.pts.length - s.n0 < 3) { restore(undoStack.pop()); return; } // a stray touch before a pinch: not a stroke
   openEditor(marks.indexOf(s.m));
 }
 const upHandler = (e) => {
@@ -458,6 +480,7 @@ const upHandler = (e) => {
   const hitMark = marks.findIndex((m) => m.pts.some((q) => q.distanceTo(p) < Math.max(m.r * 0.7, 0.015)));
   if (hitMark >= 0) { openEditor(hitMark); return; }
   if (marks.length >= 30) { toast('That is the most marks one map can hold (30).'); return; }
+  record();
   marks.push({ kind: 'spot', pts: [p], nrm: [normalAt(p)], r: SPOT_R, level: 5, types: new Set(), when: new Set(), note: '' });
   openEditor(marks.length - 1);
 };
@@ -649,7 +672,7 @@ function setViewOnly(on, s) {
   closeEditor();
 }
 $('#edit-copy').addEventListener('click', () => { setViewOnly(false); toast('You can change the marks now. Send creates a new link.'); });
-$('#new-map').addEventListener('click', () => { marks = []; $('#msg').value = ''; $('#started').value = ''; history.replaceState(null, '', location.pathname + location.search); setViewOnly(false); });
+$('#new-map').addEventListener('click', () => { undoStack.length = redoStack.length = 0; updateHist(); marks = []; $('#msg').value = ''; $('#started').value = ''; history.replaceState(null, '', location.pathname + location.search); setViewOnly(false); });
 async function openFromHash() {
   const m = location.hash.match(/^#p=([A-Za-z0-9_-]+)/); if (!m) return false;
   try {

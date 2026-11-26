@@ -222,6 +222,8 @@ A page for patients to show their doctor where they feel pain, on a plain 3D bod
 - Also: when it started, and a message for the doctor.
 - **Send to my doctor**: the phone's share menu (picture plus link), email, copy the text and link, or save a picture
   (front and back views with numbered marks and the list).
+- **Undo** and **Redo** (arrows over the body, or Ctrl+Z and Ctrl+Shift+Z): each spot, each painted stroke, each removal and
+  Clear all is one step, so one wrong stroke can be taken back and brought back again.
 - The doctor opens the link and sees the same marks in 3D, read-only, with the list and message, and can tap a mark to fly to it.
 - Everything is inside the link (`#p=...`) and the picture. Nothing is stored on a server, and the page asks patients not
   to type their name or other ID.
@@ -284,6 +286,7 @@ smoothed; see `data/bodyparts3d/README.md`. Source files via the npm package
 
 Each release is tagged (`v0.1.0`, `v0.2.0-preview`, …) and deployed to its own link so earlier versions stay available.
 
+- v0.18.0-preview: Where does it hurt? gets Undo and Redo arrows (one step per spot, stroke, removal or Clear all).
 - v0.16.0-preview: **Where does it hurt?** (`pain.html`): patients mark pain spots and areas on a 3D body, with level, kind
   and notes, and send them to their doctor as a link or picture. Linked from the body-part menu and the home page.
 - v0.15.0-preview: easier to get around (from the v0.14 UX review): home page with body-part tiles and common injuries;

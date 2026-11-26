@@ -20,6 +20,10 @@
   <div id="edge-l" class="edge-side right" aria-hidden="true">Your left</div>
   <div id="tags"></div>
 
+  <div id="hist" class="hist" role="group" aria-label="Undo and redo">
+      <button id="h-undo" disabled aria-label="Undo" title="Undo (Ctrl+Z)"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Undo</span></button>
+      <button id="h-redo" disabled aria-label="Redo" title="Redo (Ctrl+Shift+Z)"><span>Redo</span><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="m15 14 5-5-5-5M20 9H9.5a5.5 5.5 0 0 0 0 11H13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
   <section id="panel" class="info pain-panel" aria-live="polite">
     <div id="from-patient" class="from-patient" hidden>
       <div class="eyebrow">Pain map sent to you</div>
@@ -62,7 +66,7 @@
       <h3 id="list-title">Your marks</h3>
       <p id="empty" class="empty">No marks yet.</p>
       <ol id="marks"></ol>
-      <div class="actions" id="list-actions" hidden><button id="undo">Undo last</button><button id="clear" class="danger">Clear all</button></div>
+      <div class="actions" id="list-actions" hidden><button id="clear" class="danger">Clear all</button></div>
     </div>
 
     <div id="about-home" hidden><div id="about" class="about">
