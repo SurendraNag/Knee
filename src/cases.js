@@ -11,6 +11,7 @@ export function snapshot({ state, camera, controls, injuries }) {
     c: [...camera.position.toArray(), ...controls.target.toArray()].map(r3),
     j: state.joint || undefined, t: state.tissues ? [...state.tissues] : undefined,
     sel: state.mode === 'explore' ? state.selected || undefined : undefined,
+    h: state.hidden && state.hidden.size ? [...state.hidden] : undefined, // parts hidden (for example by a quick pick) so the patient sees the same
     i: (injuries ? injuries.list : []).map((j) => [j.id, j.type, j.seed, j.anchor.p.map(r3), j.anchor.n.map(r3), j.anchor.u === undefined ? null : r3(j.anchor.u)]),
   };
 }

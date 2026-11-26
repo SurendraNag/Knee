@@ -25,7 +25,7 @@ const G1 = 1, G2 = 2, G3 = 3, SPLIT = 11, BUCKET = 12, FLAP = 13, STRESS = 22, H
 
 export const COMMON = [
   // ---- knee and leg (model: right leg, +X toward the inside of the leg, +Z front) ----
-  { key: 'acl-tear', limb: 'leg', label: 'ACL tear', id: 'acl', type: G3, from: [-0.75, 0.2, 0.75], xray: true, dist: 30, aka: ['torn acl', 'acl rupture', 'cruciate'] },
+  { key: 'acl-tear', limb: 'leg', label: 'ACL tear', id: 'acl', type: G3, from: [-0.75, 0.2, 0.75], xray: true, dist: 30, hide: ['patella', 'patellar_cartilage', 'medial_meniscus', 'lateral_meniscus'], aka: ['torn acl', 'acl rupture', 'cruciate'] },
   { key: 'meniscus-tear', limb: 'leg', label: 'Meniscus tear (inner)', id: 'medial_meniscus', type: FLAP, from: [0.55, 0.75, 0.6], at: [0.6, 0.5, 0.25], xray: true, dist: 26, aka: ['torn meniscus', 'cartilage tear', 'medial meniscus'] },
   { key: 'bucket-handle-tear', limb: 'leg', label: 'Bucket-handle meniscus tear', id: 'medial_meniscus', type: BUCKET, from: [0.55, 0.75, 0.6], at: [0.6, 0.5, 0.25], xray: true, dist: 26, aka: ['locked knee'] },
   { key: 'mcl-sprain', limb: 'leg', label: 'MCL sprain', id: 'mcl', type: G2, from: [1, 0.1, 0.2], dist: 30, aka: ['inner knee ligament', 'medial collateral'] },
@@ -36,9 +36,11 @@ export const COMMON = [
   { key: 'ankle-sprain', limb: 'leg', label: 'Ankle sprain (ATFL)', id: 'atfl', type: G2, from: [-1, 0.25, 0.55], dist: 26, aka: ['sprained ankle', 'rolled ankle', 'twisted ankle'] },
   { key: 'achilles-rupture', limb: 'leg', label: 'Achilles tendon rupture', id: 'achilles_tendon', type: G3, from: [-0.7, 0.1, -1], at: [0.5, 0.35, 0.5], dist: 34, aka: ['torn achilles', 'heel tendon'] },
   { key: 'hip-labral-tear', limb: 'leg', label: 'Hip labral tear', id: 'labrum', type: SPLIT, from: [0.1, 0.15, 1], at: [0.5, 0.75, 0.9], xray: true, dist: 30, aka: ['hip labrum', 'groin pain'] },
-  { key: 'hip-fracture', limb: 'leg', label: 'Hip fracture (femoral neck)', id: 'femur', type: DISPLACED, from: [0.15, 0.1, 1], at: [0.82, 0.955, 0.5], dist: 60, aka: ['broken hip', 'neck of femur'] },
+  { key: 'hip-fracture', limb: 'leg', label: 'Hip fracture (femoral neck)', id: 'femur', type: DISPLACED, from: [0.35, 0.15, 1], at: [0.78, 0.915, 0.5], dist: 34, hide: ['hip_bone', 'hip_capsule', 'iliofemoral_ligament', 'pubofemoral_ligament', 'ischiofemoral_ligament', 'labrum', 'acetabular_cartilage', 'ligamentum_teres'], aka: ['broken hip', 'neck of femur'] },
   { key: 'shin-fracture', limb: 'leg', label: 'Shin bone fracture', id: 'tibia', type: DISPLACED, from: [0.3, 0.1, 1], at: [0.5, 0.45, 0.5], dist: 50, aka: ['broken leg', 'tibia fracture'] },
   { key: 'metatarsal-stress-fracture', limb: 'leg', label: 'Stress fracture of the foot', id: 'metatarsal_2', type: STRESS, from: [0.1, 0.7, 0.7], dist: 26, aka: ['march fracture', 'second metatarsal'] },
+  { key: 'femoral-shaft-fracture', limb: 'leg', label: 'Thigh bone fracture (femoral shaft)', id: 'femur', type: DISPLACED, from: [0.25, 0.1, 1], at: [0.5, 0.5, 0.5], dist: 70, aka: ['broken thigh', 'broken femur', 'femur fracture', 'thighbone'] },
+  { key: 'ankle-fracture', limb: 'leg', label: 'Ankle fracture (outer ankle bone)', id: 'fibula', type: DISPLACED, from: [-1, 0.15, 0.35], at: [0.5, 0.06, 0.5], dist: 32, aka: ['broken ankle', 'lateral malleolus', 'fibula fracture', 'weber'] },
 
   // ---- shoulder and elbow (model: right arm, +X toward the body, +Z front) ----
   { key: 'rotator-cuff-tear', limb: 'shoulder', label: 'Rotator cuff tear', id: 'rotator_cuff_tendon', type: G3, from: [-0.55, 0.75, 0.35], dist: 34, aka: ['torn rotator cuff', 'supraspinatus tear', 'cuff'] },
@@ -58,6 +60,8 @@ export const COMMON = [
   { key: 'distal-radius-fracture', limb: 'hand', label: 'Wrist fracture (distal radius)', id: 'radius', type: DISPLACED, from: [0.35, 0.1, 1], at: [0.5, 0.88, 0.5], dist: 24, aka: ['broken wrist', 'colles fracture'] },
   { key: 'boxers-fracture', limb: 'hand', label: "Boxer's fracture", id: 'metacarpal_5', type: DISPLACED, from: [-0.3, 0.1, -1], at: [0.5, 0.8, 0.5], dist: 20, aka: ['fifth metacarpal', 'broken hand'] },
   { key: 'skiers-thumb', limb: 'hand', label: "Skier's thumb (thumb UCL tear)", id: 'thumb_ucl', type: G3, from: [0.4, 0.1, 1], dist: 14, aka: ["gamekeeper's thumb", 'thumb sprain'] },
+  { key: 'thumb-base-fracture', limb: 'hand', label: 'Thumb fracture at the base (Bennett)', id: 'metacarpal_1', type: DISPLACED, from: [0.6, 0.1, 1], at: [0.5, 0.12, 0.5], dist: 16, aka: ['broken thumb', 'bennett fracture', 'thumb metacarpal'] },
+  { key: 'thumb-fracture', limb: 'hand', label: 'Thumb bone fracture', id: 'thumb_bones', type: HAIRLINE, from: [0.6, 0.1, 1], dist: 16, aka: ['broken thumb', 'thumb phalanx', 'fractured thumb'] },
   { key: 'tfcc-tear', limb: 'hand', label: 'TFCC tear', id: 'tfcc', type: SPLIT, from: [-1, 0.15, 0.35], dist: 18, aka: ['ulnar wrist pain', 'triangular fibrocartilage'] },
   { key: 'scapholunate-tear', limb: 'hand', label: 'Scapholunate ligament tear', id: 'scapholunate_ligament', type: G3, from: [0, 0.15, -1], dist: 16, aka: ['wrist ligament'] },
 

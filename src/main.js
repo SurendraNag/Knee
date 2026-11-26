@@ -14,6 +14,7 @@ THREE.Mesh.prototype.raycast = acceleratedRaycast;
 import { APP_VERSION } from './version.js';
 import { snapshot, injuryList, encode, decode, listCases, saveCase, deleteCase, renameCase } from './cases.js';
 import { COMMON } from './catalog.js';
+import { qrSvg, initBigText } from './qr.js';
 import { mountSearch, mountNav } from './search.js';
 import { createModesty, modestyButton, REGIONS as PRIVATE } from './modesty.js';
 export { APP_VERSION };
@@ -600,11 +601,18 @@ function injurySentence(inj) {
   const info = STRUCTURES[inj.id]; const t = typeInfo(injuryKind(inj.id), inj.type);
   return { title: `${info.short.replace(/^./, (c) => c.toUpperCase())}: ${t.label.replace(/^(?!Grade)./, (c) => c.toLowerCase())}`, text: t.say(info.short, info) };
 }
+// A herniated disc on the spine page links to Spine Movement with that disc pushed back toward its nerve root
+// (paracentral, a protrusion), so the patient can see which nerve it presses on.
+function moreLink(inj) {
+  if (LIMB !== 'spine' || injuryKind(inj.id) !== 'spinaldisc' || inj.type !== 13 || !/^disc_/.test(inj.id)) return '';
+  const d = inj.id.replace('disc_', '');
+  return ` <a class="inj-more" href="spine-move.html#h=${d}:3.58:0.55&d=${d}" target="_blank" rel="noopener">See which nerve it presses on ›</a>`;
+}
 function renderInjuryList() {
   const list = injuries ? injuries.list : [];
   $('#inj-listwrap').hidden = list.length === 0;
   $('#inj-list').innerHTML = list.map((inj, i) => { const s = injurySentence(inj);
-    return `<li><span class="num">${i + 1}</span><span><b>${s.title}.</b> ${s.text}</span><button class="rm" data-rm="${i}" aria-label="Remove injury ${i + 1}">×</button></li>`; }).join('');
+    return `<li><span class="num">${i + 1}</span><span><b>${s.title}.</b> ${s.text}${moreLink(inj)}</span><button class="rm" data-rm="${i}" aria-label="Remove injury ${i + 1}">×</button></li>`; }).join('');
   $('#inj-list').querySelectorAll('[data-rm]').forEach((b) => b.addEventListener('click', () => { recordInj(); injuries.remove(Number(b.dataset.rm)); state.lastQuick = null; $('#inj-move').hidden = true; renderInjuryList(); }));
   // tags
   const tags = $('#tags');
@@ -847,6 +855,14 @@ function wireUI() {
   $('#show').addEventListener('click', () => { closePopovers(); openShow(); });
   $('#labels').addEventListener('click', () => setLabels(!state.labels));
   $('#pt-labels').addEventListener('click', () => setLabels(!state.labels));
+  // Larger text: a button for patients next to Labels, and in the Display panel for everyone
+  const big = document.createElement('button'); big.id = 'pt-big'; big.className = 'patient-only'; big.setAttribute('aria-pressed', 'false');
+  big.setAttribute('aria-label', 'Larger text'); big.title = 'Larger text'; big.innerHTML = 'A<span class="big-a">A</span>';
+  $('#pt-labels').after(big);
+  const big2 = document.createElement('button'); big2.id = 'big-text'; big2.className = 'toggle'; big2.setAttribute('aria-pressed', 'false'); big2.textContent = 'Larger text';
+  $('#labels').after(big2);
+  const setBig = initBigText(big, () => { big2.setAttribute('aria-pressed', big.getAttribute('aria-pressed')); requestAnimationFrame(() => frameFreeArea()); });
+  big2.addEventListener('click', () => setBig(big.getAttribute('aria-pressed') !== 'true'));
   $('#spread').addEventListener('input', (e) => { state.spread = Number(e.target.value); applySpread(); });
   document.querySelectorAll('#cube .face').forEach((f) => f.addEventListener('click', () => {
     const v = f.dataset.face;
@@ -890,6 +906,8 @@ function applySnap(sn) {
   if (sn.c) { camera.position.set(sn.c[0], sn.c[1], sn.c[2]); controls.target.set(sn.c[3], sn.c[4], sn.c[5]); controls.update(); }
   injuries.set(injuryList(sn).filter((j) => meshes[j.id] && injuries.targets[j.id])); renderInjuryList(); resetInjHist();
   if (sn.m !== 1) select(sn.sel && meshes[sn.sel] ? sn.sel : null);
+  state.hidden.clear(); for (const id of sn.h || []) if (meshes[id]) state.hidden.add(id);
+  state.quickHidden = [];
   modesty.shown = !!sn.pp; $('#private-parts')?.repaint();
   applyVisibility();
 }
@@ -909,6 +927,7 @@ async function openShare(snap = getSnap()) {
     ${asked ? '<label class="share-private"><input type="checkbox" id="share-pp"> Show the private parts in these links too (they are blurred unless you tick this)</label>' : ''}
     <div class="row"><input type="text" id="share-patient" readonly value="${esc(purl)}" aria-label="Patient link"><button data-copy="share-patient" class="primary">Copy</button></div>
     ${navigator.share ? '<button id="share-native" class="primary wide">Send to patient…</button>' : ''}
+    <div class="qr-wrap"><div id="share-qr" class="qr">${qrSvg(purl)}</div><p class="note">In the clinic, your patient can scan this with their phone camera to open the patient link.</p></div>
     <h3>For you</h3>
     <p class="note">The same view, still editable. Keep it to carry on later, or save it under Cases (in the ⋯ menu).</p>
     <div class="row"><input type="text" id="share-url" readonly value="${esc(url)}" aria-label="Editable link"><button data-copy="share-url">Copy</button></div>
@@ -919,7 +938,7 @@ async function openShare(snap = getSnap()) {
   $('#share-pp')?.addEventListener('change', async (e) => {
     sn.pp = e.target.checked ? 1 : undefined;
     url = await shareLink(sn); purl = withParam(url, 'patient');
-    $('#share-patient').value = purl; $('#share-url').value = url;
+    $('#share-patient').value = purl; $('#share-url').value = url; $('#share-qr').innerHTML = qrSvg(purl);
     $('#share-embed').value = iframeCode(withParam(url, 'embed')); $('#share-embed-p').value = iframeCode(withParam(withParam(url, 'embed'), 'patient'));
     toast(e.target.checked ? 'These links now show the private parts' : 'These links blur the private parts');
   });

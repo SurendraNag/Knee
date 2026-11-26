@@ -87,3 +87,14 @@ button.big { width: 100%; min-height: 48px; font-size: 16px; }
 .pain-app .hist { left: 16px; top: calc(62px + env(safe-area-inset-top)); }
 .pain-received .hist { display: none; }
 @media (max-width: 760px) { .pain-app .hist { top: calc(72px + env(safe-area-inset-top)); } }
+
+/* Larger text */
+.pain-app .toolbar #big { width: 44px; padding: 0; font-size: 15px; font-weight: 700; }
+.pain-app .toolbar #big .big-a { font-size: 1.3em; }
+.big-text .pain-panel .lead, .big-text .lvl-label, .big-text #marks .mk b, .big-text .fp-msg { font-size: 17.5px; }
+.big-text #marks .mk small, .big-text .empty, .big-text .note-label, .big-text .about label, .big-text .fp-meta { font-size: 15.5px; }
+.big-text .chips button, .big-text .seg button, .big-text .send-grid button, .big-text .send-grid .btnlink { font-size: 16px; }
+.big-text .pain-app .views button, .big-text .pain-app .toolbar #region { font-size: 15px; }
+.big-text .edge-side { font-size: 13.5px; }
+.big-text .pain-panel input[type=text], .big-text .pain-app .dlg textarea { font-size: 17px; }
+@media (max-width: 760px) { .pain-app .toolbar #big { width: 38px; min-height: 36px; } }
