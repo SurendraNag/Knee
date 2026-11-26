@@ -707,7 +707,7 @@ function wireUI() {
     a.href = location.href; $('.modes').appendChild(a);
   }
   { // switch to another body part, keeping patient and embed mode
-    const PAGES = [['index.html', 'Leg'], ['hand.html', 'Hand'], ['shoulder.html', 'Shoulder'], ['spine.html', 'Spine and pelvis'], ['head.html', 'Skull and face'], ['body.html', 'Whole body']];
+    const PAGES = [['index.html', 'Leg'], ['hand.html', 'Hand'], ['shoulder.html', 'Shoulder'], ['spine.html', 'Spine and pelvis'], ['head.html', 'Skull and face'], ['body.html', 'Whole body'], ['pain.html', 'Where it hurts (for patients)']];
     const here = { leg: 'index.html', hand: 'hand.html', shoulder: 'shoulder.html', spine: 'spine.html', head: 'head.html' }[LIMB];
     const sel = $('#part-nav');
     if (sel) {

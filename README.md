@@ -166,6 +166,21 @@ The body data is built by `scripts/build-body.mjs` from the npm package `@dagno/
 - the skin is smoothed over the groin and raised over the breast tissue. Height, build and face stay those of the
   reference body. (The ready-made female body in open-anatomy-3d was tried first, but its pelvis and hands are distorted.)
 
+## Where does it hurt? (`pain.html`, for patients)
+
+A page for patients to show their doctor where they feel pain, on a plain 3D body (male or female).
+- **Spot**: tap the body where it hurts. **Area**: drag over the body to paint a patch (small, medium or large brush);
+  drag the background to turn the body. **Turn only** never marks.
+- For each mark: how bad (0 to 10, coloured from yellow to deep red), what it feels like (sharp, dull ache, burning,
+  shooting, tingling, numb, …), when it is worse, and a short note. The page names the place automatically
+  (for example "Front of the right knee (kneecap)"); names use the patient's own right and left and are approximate.
+- Also: when it started, and a message for the doctor.
+- **Send to my doctor**: the phone's share menu (picture plus link), email, copy the text and link, or save a picture
+  (front and back views with numbered marks and the list).
+- The doctor opens the link and sees the same marks in 3D, read-only, with the list and message, and can tap a mark to fly to it.
+- Everything is inside the link (`#p=...`) and the picture. Nothing is stored on a server, and the page asks patients not
+  to type their name or other ID.
+
 ## On a clinic website (embedding) and patient links
 
 The **Share** dialog also gives:
@@ -221,6 +236,8 @@ smoothed; see `data/bodyparts3d/README.md`. Source files via the npm package
 
 Each release is tagged (`v0.1.0`, `v0.2.0-preview`, …) and deployed to its own link so earlier versions stay available.
 
+- v0.15.0-preview: **Where does it hurt?** (`pain.html`): patients mark pain spots and areas on a 3D body, with level, kind
+  and notes, and send them to their doctor as a link or picture. Linked from the body-part menu and the Whole body page.
 - v0.12.2-preview: anatomy accuracy audit across all pages (Gray's / Netter): corrected the ACL's attachment, the pterion,
   the anatomical snuffbox, the branching of the lower-leg arteries, the sciatic and median nerve areas, the costal cartilages,
   and several smaller descriptions; the knee and ankle "Show… joint only" views now keep the whole collateral ligaments and
