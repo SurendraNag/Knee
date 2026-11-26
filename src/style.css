@@ -253,6 +253,7 @@ button.primary:hover:not(:disabled), #share:hover { background: #5a9dff; }
 .pop-row .peel-label { flex: 1 1 100%; max-width: none; }
 .popover.menu { display: grid; gap: 6px; padding: 8px; min-width: 160px; }
 .popover.menu button { text-align: left; }
+.popover.menu .menu-link { color: var(--text); text-decoration: none; border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; background: rgba(255,255,255,0.06); }
 @media (max-width: 760px) { #display-panel { left: 16px; right: 16px; width: auto; max-width: none; } .pop-row button { flex: 1 1 auto; } }
 
 /* ---------- injury mode: common injuries ---------- */
