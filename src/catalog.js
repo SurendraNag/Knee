@@ -22,7 +22,8 @@ export const PAGES = [
 export const pageOf = (limb) => PAGES.find((p) => p.limb === limb);
 
 const G1 = 1, G2 = 2, G3 = 3, SPLIT = 11, BUCKET = 12, FLAP = 13, WORN = 14, STENOSIS = 15, STRESS = 22, HAIRLINE = 23, DISPLACED = 24, ARTHRITIS = 26, SLIP = 27, SHATTERED = 25,
-  STRAIN = 31, CONTUSION = 33, CRUSH = 34, COMPART = 35, CUT = 41, OPENFX = 42, NBRUISE = 51, CLOT = 54;
+  STRAIN = 31, CONTUSION = 33, CRUSH = 34, COMPART = 35, CUT = 41, OPENFX = 42, NBRUISE = 51, CLOT = 54,
+  PLATE = 61, ROD = 62, SCREWS = 63, CAST = 64, BRACE = 65, GRAFT = 66, REPLACE = 67;
 
 export const COMMON = [
   // ---- knee and leg (model: right leg, +X toward the inside of the leg, +Z front) ----
@@ -54,6 +55,15 @@ export const COMMON = [
   { key: 'femoral-shaft-fracture', limb: 'leg', label: 'Thigh bone fracture (femoral shaft)', id: 'femur', type: DISPLACED, from: [0.25, 0.1, 1], at: [0.5, 0.5, 0.5], dist: 70, aka: ['broken thigh', 'broken femur', 'femur fracture', 'thighbone'] },
   { key: 'ankle-fracture', limb: 'leg', label: 'Ankle fracture (outer ankle bone)', id: 'fibula', type: DISPLACED, from: [-1, 0.15, 0.35], at: [0.5, 0.06, 0.5], dist: 32, aka: ['broken ankle', 'lateral malleolus', 'fibula fracture', 'weber'] },
 
+  // after treatment (v0.24, simplified illustrations for doctor review)
+  { key: 'femur-rod', limb: 'leg', label: 'After surgery: rod in the thigh bone', id: 'femur', type: HAIRLINE, from: [0.25, 0.1, 1], at: [0.5, 0.5, 0.5], xray: true, dist: 70, also: [{ id: 'femur', type: ROD }], aka: ['intramedullary nail', 'im nail', 'femur nail', 'rod in leg'] },
+  { key: 'hip-screws', limb: 'leg', label: 'After surgery: screws in a broken hip', id: 'femur', type: HAIRLINE, from: [0.35, 0.15, 1], at: [0.78, 0.915, 0.5], xray: true, dist: 34, hide: ['hip_bone', 'hip_capsule', 'iliofemoral_ligament', 'pubofemoral_ligament', 'ischiofemoral_ligament', 'labrum', 'acetabular_cartilage', 'ligamentum_teres'], also: [{ id: 'femur', type: SCREWS, from: [-1, 0, 0.2], at: [0.3, 0.88, 0.5] }], aka: ['hip pinning', 'cannulated screws', 'dhs'] },
+  { key: 'hip-replacement', limb: 'leg', label: 'Hip replacement', id: 'femur', type: REPLACE, from: [0.35, 0.15, 1], at: [0.9, 0.985, 0.5], xray: true, dist: 36, hide: [...['hip_bone', 'hip_capsule', 'iliofemoral_ligament', 'pubofemoral_ligament', 'ischiofemoral_ligament', 'labrum', 'acetabular_cartilage', 'ligamentum_teres'], 'femoral_head_cartilage'], aka: ['total hip replacement', 'thr', 'hip arthroplasty', 'new hip'] },
+  { key: 'knee-replacement', limb: 'leg', label: 'Knee replacement', id: 'femur', type: REPLACE, from: [0.7, 0.1, 0.8], at: [0.5, 0.03, 0.55], dist: 32, hide: ['patella', 'patellar_cartilage', 'femoral_cartilage', 'tibial_cartilage', 'medial_meniscus', 'lateral_meniscus', 'acl'], also: [{ id: 'tibia', type: REPLACE, at: [0.5, 0.97, 0.5] }], aka: ['total knee replacement', 'tkr', 'knee arthroplasty', 'new knee'] },
+  { key: 'acl-reconstruction', limb: 'leg', label: 'ACL reconstruction (graft)', id: 'acl', type: GRAFT, from: [-0.75, 0.2, 0.75], xray: true, dist: 30, hide: ['patella', 'patellar_cartilage', 'medial_meniscus', 'lateral_meniscus'], aka: ['acl surgery', 'acl graft', 'acl repair'] },
+  { key: 'knee-brace', limb: 'leg', label: 'Knee brace', id: 'femur', type: BRACE, from: [0.6, 0.1, 1], at: [0.5, 0.06, 0.5], dist: 60, aka: ['hinged brace', 'knee support'] },
+  { key: 'ankle-plate', limb: 'leg', label: 'After surgery: plate on the ankle', id: 'fibula', type: HAIRLINE, from: [-1, 0.15, 0.35], at: [0.5, 0.06, 0.5], xray: true, dist: 32, also: [{ id: 'fibula', type: PLATE, at: [0.5, 0.08, 0.5] }], aka: ['ankle orif', 'ankle plate'] },
+
   // ---- shoulder and elbow (model: right arm, +X toward the body, +Z front) ----
   { key: 'rotator-cuff-tear', limb: 'shoulder', label: 'Rotator cuff tear', id: 'rotator_cuff_tendon', type: G3, from: [-0.55, 0.75, 0.35], dist: 34, aka: ['torn rotator cuff', 'supraspinatus tear', 'cuff'] },
   { key: 'rotator-cuff-partial', limb: 'shoulder', label: 'Partial rotator cuff tear', id: 'rotator_cuff_tendon', type: G2, from: [-0.55, 0.75, 0.35], dist: 34, aka: ['supraspinatus'] },
@@ -70,6 +80,8 @@ export const COMMON = [
   // ---- hand and wrist (model: right forearm, palm toward +Z, thumb toward +X) ----
   { key: 'scaphoid-fracture', limb: 'hand', label: 'Scaphoid fracture', id: 'scaphoid', type: HAIRLINE, from: [0.45, 0.15, 1], dist: 16, aka: ['broken wrist', 'snuffbox'] },
   { key: 'distal-radius-fracture', limb: 'hand', label: 'Wrist fracture (distal radius)', id: 'radius', type: DISPLACED, from: [0.35, 0.1, 1], at: [0.5, 0.88, 0.5], dist: 24, aka: ['broken wrist', 'colles fracture'] },
+  { key: 'wrist-plate', limb: 'hand', label: 'After surgery: plate on a broken wrist', id: 'radius', type: HAIRLINE, from: [0.35, 0.1, 1], at: [0.5, 0.88, 0.5], xray: true, dist: 24, also: [{ id: 'radius', type: PLATE, from: [0.15, 0, 1], at: [0.68, 0.82, 0.5] }], aka: ['wrist orif', 'volar plate', 'wrist surgery'] },
+  { key: 'wrist-cast', limb: 'hand', label: 'Wrist fracture in a cast', id: 'radius', type: HAIRLINE, from: [0.35, 0.1, 1], at: [0.5, 0.88, 0.5], dist: 30, also: [{ id: 'radius', type: CAST, at: [0.5, 0.8, 0.5] }], aka: ['plaster cast', 'wrist cast', 'broken wrist cast'] },
   { key: 'boxers-fracture', limb: 'hand', label: "Boxer's fracture", id: 'metacarpal_5', type: DISPLACED, from: [-0.3, 0.1, -1], at: [0.5, 0.8, 0.5], dist: 20, aka: ['fifth metacarpal', 'broken hand'] },
   { key: 'skiers-thumb', limb: 'hand', label: "Skier's thumb (thumb UCL tear)", id: 'thumb_ucl', type: G3, from: [0.4, 0.1, 1], dist: 14, aka: ["gamekeeper's thumb", 'thumb sprain'] },
   { key: 'thumb-base-fracture', limb: 'hand', label: 'Thumb fracture at the base (Bennett)', id: 'metacarpal_1', type: DISPLACED, from: [0.6, 0.1, 1], at: [0.5, 0.12, 0.5], dist: 16, aka: ['broken thumb', 'bennett fracture', 'thumb metacarpal'] },

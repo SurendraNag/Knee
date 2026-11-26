@@ -16,6 +16,8 @@ export const T = {
   STRAIN: 31, MTEAR: 32, CONTUSION: 33, CRUSH: 34, COMPART: 35,
   CUT: 41, OPENFX: 42, GRAZE: 43, DEGLOVE: 44,
   NBRUISE: 51, NCUT: 52, VTEAR: 53, CLOT: 54,
+  // after treatment (v0.24): drawn as extra parts (metal, cast, brace) on top of the anatomy
+  PLATE: 61, ROD: 62, SCREWS: 63, CAST: 64, BRACE: 65, GRAFT: 66, REPLACE: 67,
 };
 
 export const INJURY_TYPES = {
@@ -44,6 +46,7 @@ export const INJURY_TYPES = {
     { type: T.G1, label: 'Mild sprain (grade I)', sub: 'Stretched, not torn', say: (s) => `The ${s} is stretched but not torn. This kind of injury often heals with rest and exercises; your clinician will say what applies to you.` },
     { type: T.G2, label: 'Partial tear (grade II)', sub: 'Some fibres torn', say: (s) => `The ${s} is partly torn: some of its fibres are frayed and broken, so it is looser and weaker.` },
     { type: T.G3, label: 'Complete tear (grade III)', sub: 'Torn all the way through', say: (s, i = {}) => `The ${s} is torn all the way through, so its two ends have pulled apart and it no longer holds the ${i.joint || CFG.defaultJoint} steady.` },
+    { type: T.GRAFT, treatment: true, label: 'Reconstructed (graft)', sub: 'New ligament from a tendon', say: (s) => `The torn ${s} has been replaced by a graft (usually a piece of tendon) held in tunnels in the bone with screws: a reconstruction.` },
   ],
   tendon: [
     { type: T.G2, label: 'Partial tear', sub: 'Frayed fibres', say: (s) => `The ${s} is partly torn: some fibres are frayed and broken.` },
@@ -79,6 +82,12 @@ export const INJURY_TYPES = {
     { type: T.BRUISE, label: 'Bone bruise', sub: 'Soft discoloured patch', say: (s) => `The ${s} is bruised inside: bleeding and swelling in the bone, without a break.` },
     { type: T.STRESS, label: 'Stress fracture', sub: 'Faint line, slight swelling', say: (s) => `A small crack in the ${s} from repeated strain, with slight swelling around it.` },
     { type: T.ARTHRITIS, label: 'Arthritis (bone spurs)', sub: 'Worn joint edge, bony lumps', say: (s) => `The joint surface of the ${s} is worn here, and the bone has grown small lumps (bone spurs) at the edge. This is osteoarthritis; it can cause stiffness and aching.` },
+    { type: T.PLATE, treatment: true, label: 'Plate and screws', sub: 'Metal plate on the bone', say: (s) => `A metal plate is screwed onto the ${s} to hold the broken pieces in line while the bone heals.` },
+    { type: T.ROD, treatment: true, only: 'long', label: 'Rod inside the bone (nail)', sub: 'Metal rod down the middle', say: (s) => `A metal rod (an intramedullary nail) runs down the inside of the ${s}, locked with a screw at each end, to hold the break in line while it heals. It usually stays in.` },
+    { type: T.SCREWS, treatment: true, label: 'Screws', sub: 'Screws across the break', say: (s) => `Metal screws hold the pieces of the ${s} together.` },
+    { type: T.CAST, treatment: true, label: 'Cast', sub: 'Hard cast around the limb', say: (s) => `A cast around the limb holds the ${s} still while it heals.` },
+    { type: T.BRACE, treatment: true, label: 'Brace or splint', sub: 'Straps and side supports', say: (s) => `A brace around the joint near the ${s} supports it and limits movement while it heals.` },
+    { type: T.REPLACE, treatment: true, label: 'Joint replacement', sub: 'Worn joint end replaced with metal', say: (s) => `The worn joint end of the ${s} has been replaced with a metal part (a joint replacement). The other side of the joint usually gets a metal or plastic part too.` },
     { type: T.SLIP, only: 'vertebra', label: 'Slipped forward (spondylolisthesis)', sub: 'Vertebra shifted over the one below', say: (s) => `The ${s} has slipped forward over the vertebra below it (spondylolisthesis), which can narrow the space for the nerves.` },
   ],
 };
@@ -90,7 +99,10 @@ export const injuryKind = (id) => {
 export const typeInfo = (kind, type) => INJURY_TYPES[kind].find((t) => t.type === type);
 // The injury types offered for one structure: a structure can narrow its kind's list with `injuryTypes` (for example, no
 // stress fractures or bone bruises on skull bones or teeth). Saved injuries of other types still render through typeInfo.
-export const injuryTypesFor = (id) => { const k = injuryKind(id), only = STRUCTURES[id]?.injuryTypes; return k ? INJURY_TYPES[k].filter((t) => (!only || only.includes(t.type)) && (!t.only || STRUCTURES[id]?.[t.only])) : []; };
+// `only`: a type for some structures only (`vertebra`: vertebrae; `long`: the long bones, which can take a rod)
+const LONG = new Set(['femur', 'tibia', 'humerus', 'radius', 'ulna', 'fibula']);
+const onlyOk = (t, id) => !t.only || (t.only === 'long' ? LONG.has(id) : STRUCTURES[id]?.[t.only]);
+export const injuryTypesFor = (id) => { const k = injuryKind(id), only = STRUCTURES[id]?.injuryTypes; return k ? INJURY_TYPES[k].filter((t) => (!only || only.includes(t.type) || (t.treatment && t.type !== T.ROD && t.type !== T.REPLACE)) && onlyOk(t, id)) : []; };
 
 // ---------------- GLSL ----------------
 const NOISE = /* glsl */ `
@@ -270,6 +282,7 @@ const SWEEP_FRAG = /* glsl */ `
     if (ty == 11) { if (ad < 0.09 && vIR > 0.22) discard; col = mix(col, vec3(0.7, 0.45, 0.4), (1.0 - smoothstep(0.0, 0.25, ad)) * 0.35 * step(0.2, vIR)); }
     if (ty == 12) { if (ad < 1.55 && abs(vIR - 0.5) < 0.05) discard; }
     if (ty == 14) col = mix(col, vec3(0.55, 0.48, 0.36), 0.75);
+    if (ty == 66) col = mix(col, vec3(0.93, 0.85, 0.62), 0.7) * (0.9 + 0.1 * step(0.5, fract(vIV * 12.0)));
     if (ty == 15) col = mix(col, vec3(0.78, 0.5, 0.45), 0.3);
     if (ty == 13) { if ((du > 0.0 && du < 1.1 && abs(vIR - 0.42) < 0.04) || (abs(du) < 0.035 && vIR > 0.42)) discard; }
   }
@@ -351,6 +364,9 @@ export class InjuryManager {
     this.extraGroup = new THREE.Group(); scene.add(this.extraGroup);
     this.fiberMat = new THREE.MeshStandardMaterial({ color: 0xd9b9ae, roughness: 0.6 });
     this.fragMat = new THREE.MeshStandardMaterial({ color: 0xd8ccb2, roughness: 0.85, flatShading: true });
+    this.metalMat = new THREE.MeshStandardMaterial({ color: 0xb9c2cc, metalness: 0.85, roughness: 0.28, side: THREE.DoubleSide });
+    this.castMat = new THREE.MeshStandardMaterial({ color: 0xdfe8f2, roughness: 0.95, transparent: true, opacity: 0.5, depthWrite: false, side: THREE.DoubleSide });
+    this.braceMat = new THREE.MeshStandardMaterial({ color: 0x2c3e66, roughness: 0.7, side: THREE.DoubleSide });
     const linkedCart = new Set();
     for (const [id, mesh] of Object.entries(meshes)) {
       const kind = injuryKind(id);
@@ -442,12 +458,109 @@ export class InjuryManager {
             C.set(n.x, n.y, n.z, 1);
           }
           if (inj.type === T.SHATTERED) this.addFragments(p, n, dir, inj.seed);
+          if (inj.type >= 61 && inj.type <= 67) this.addTreatment(id, inj, p, n);
         } else {
           A.set(inj.anchor.u, 0, 0, inj.type); B.set(inj.seed * 10, 0, 0, 0);
           if (inj.type === T.G2 || inj.type === T.G3) this.addFibres(id, inj);
+          if (inj.type === T.GRAFT) this.addGraftScrews(id);
         }
       });
     }
+  }
+
+  // ---------- after treatment: implants, casts and braces (simplified illustrations, for doctor review) ----------
+  _put(geom, mat) { const m = new THREE.Mesh(geom, mat); m.userData.owner = this._owner; this.extraGroup.add(m); return m; }
+  _cyl(a, b, r, mat, r2 = r) { // a cylinder from a to b
+    const d = b.clone().sub(a), L = d.length(); const g = new THREE.CylinderGeometry(r2, r, L, 14);
+    g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()));
+    g.translate((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2); return this._put(g, mat);
+  }
+  // centre line of a long bone: centroids of thin horizontal slices
+  _centre(id) {
+    const g = this.meshes[id].geometry; if (g.userData.centre) return g.userData.centre;
+    if (!g.boundingBox) g.computeBoundingBox();
+    const P = g.attributes.position.array, b = g.boundingBox, n = 24, pts = [];
+    for (let k = 0; k <= n; k++) {
+      const y = b.min.y + (b.max.y - b.min.y) * (0.06 + 0.88 * k / n); const c = new THREE.Vector3(); let m = 0;
+      for (let i = 0; i < P.length; i += 3) if (Math.abs(P[i + 1] - y) < 0.5) { c.x += P[i]; c.z += P[i + 2]; m++; }
+      if (m) pts.push(new THREE.Vector3(c.x / m, y, c.z / m));
+    }
+    return (g.userData.centre = pts);
+  }
+  _surface(id, q) { const mesh = this.meshes[id]; const r = mesh.geometry.boundsTree.closestPointToPoint(q); const g = mesh.geometry; const ia = g.index.array[r.faceIndex * 3];
+    return { p: r.point.clone(), n: new THREE.Vector3().fromBufferAttribute(g.attributes.normal, ia).normalize() }; }
+  // part of the skin around the limb between two heights, pushed out (cast) or cut into bands (brace)
+  _skinBand(y0, y1, push, keep = () => true) {
+    const skin = this.meshes.skin; if (!skin) return null;
+    const g = skin.geometry, P = g.attributes.position.array, N = g.attributes.normal.array, I = g.index.array;
+    const pos = [], map = new Map(), idx = [];
+    const vert = (i) => { if (map.has(i)) return map.get(i); const k = pos.length / 3; pos.push(P[i * 3] + N[i * 3] * push, P[i * 3 + 1] + N[i * 3 + 1] * push, P[i * 3 + 2] + N[i * 3 + 2] * push); map.set(i, k); return k; };
+    for (let t = 0; t < I.length; t += 3) {
+      const a = I[t], b = I[t + 1], c = I[t + 2]; const y = (P[a * 3 + 1] + P[b * 3 + 1] + P[c * 3 + 1]) / 3;
+      if (y < y0 || y > y1 || !keep(y)) continue; idx.push(vert(a), vert(b), vert(c));
+    }
+    if (!idx.length) return null;
+    const out = new THREE.BufferGeometry(); out.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); out.setIndex(idx); out.computeVertexNormals(); return out;
+  }
+  addTreatment(id, inj, p, n) {
+    const sc = CFG.injuryScale ?? 1, up = new THREE.Vector3(0, 1, 0);
+    if (inj.type === T.PLATE) {
+      const t = up.clone().addScaledVector(n, -n.dot(up)).normalize(); if (t.lengthSq() < 0.1) t.set(1, 0, 0);
+      const L = 10 * sc, W = 0.65 * sc, steps = 16, pos = [], idx = [];
+      const holes = [];
+      for (let k = 0; k <= steps; k++) {
+        const s = -L / 2 + (L * k) / steps; const sf = this._surface(id, p.clone().addScaledVector(t, s));
+        const b = new THREE.Vector3().crossVectors(t, sf.n).normalize(); const c = sf.p.clone().addScaledVector(sf.n, 0.28 * sc);
+        pos.push(...c.clone().addScaledVector(b, -W).toArray(), ...c.clone().addScaledVector(b, W).toArray());
+        if (k) { const o = (k - 1) * 2; idx.push(o, o + 1, o + 2, o + 1, o + 3, o + 2); }
+        if (k % 3 === 1 && k !== 7 && k !== 10) holes.push(sf);
+      }
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); this._put(g, this.metalMat);
+      for (const h of holes) { const a = h.p.clone().addScaledVector(h.n, 0.42 * sc); this._cyl(a, h.p.clone().addScaledVector(h.n, -2.6 * sc), 0.17 * sc, this.metalMat); this._cyl(a, a.clone().addScaledVector(h.n, 0.12 * sc), 0.34 * sc, this.metalMat); }
+    } else if (inj.type === T.ROD) {
+      const c = this._centre(id); if (c.length < 3) return;
+      // smooth the centre line (a gentle quadratic through the shaft) so the rod does not follow the bumps of the joint ends
+      const mid = c.slice(3, -3), fit = (k) => { let S = [0, 0, 0, 0, 0], T = [0, 0, 0]; for (const q of mid) { const y = q.y, v = q.getComponent(k); for (let e = 0; e < 5; e++) S[e] += y ** e; for (let e = 0; e < 3; e++) T[e] += v * y ** e; }
+        const M = [[S[0], S[1], S[2]], [S[1], S[2], S[3]], [S[2], S[3], S[4]]], det = (A) => A[0][0] * (A[1][1] * A[2][2] - A[1][2] * A[2][1]) - A[0][1] * (A[1][0] * A[2][2] - A[1][2] * A[2][0]) + A[0][2] * (A[1][0] * A[2][1] - A[1][1] * A[2][0]);
+        const D = det(M); return [0, 1, 2].map((j) => det(M.map((r, i) => r.map((x, jj) => (jj === j ? T[i] : x)))) / D); };
+      const fx = fit(0), fz = fit(2), at = (y) => new THREE.Vector3(fx[0] + fx[1] * y + fx[2] * y * y, y, fz[0] + fz[1] * y + fz[2] * y * y);
+      const y0 = c[1].y, y1 = c[c.length - 1].y, line = []; for (let k = 0; k <= 12; k++) line.push(at(y0 + ((y1 - y0) * k) / 12));
+      const curve = new THREE.CatmullRomCurve3(line); this._put(new THREE.TubeGeometry(curve, 48, 0.5 * sc, 12, false), this.metalMat);
+      for (const q of [line[1], line[line.length - 2]]) this._cyl(q.clone().add(new THREE.Vector3(-3.2 * sc, 0, 0.4)), q.clone().add(new THREE.Vector3(3.2 * sc, 0, -0.4)), 0.22 * sc, this.metalMat);
+    } else if (inj.type === T.SCREWS) {
+      let d = n.clone().negate(); if (id === 'femur') d.addScaledVector(up, 0.55).normalize(); // hip screws run up the neck
+      const a = new THREE.Vector3().crossVectors(d, up); if (a.lengthSq() < 0.05) a.set(1, 0, 0); a.normalize(); const b = new THREE.Vector3().crossVectors(d, a);
+      const offs = [[0, 0.55], [-0.5, -0.35], [0.5, -0.35]];
+      for (const [u, v] of offs) { const s0 = p.clone().addScaledVector(a, u * sc * 1.4).addScaledVector(b, v * sc * 1.4).addScaledVector(d, (id === 'femur' ? 1.2 : -0.2) * sc);
+        this._cyl(s0, s0.clone().addScaledVector(d, (id === 'femur' ? 7.6 : 4) * sc), 0.28 * sc, this.metalMat); this._cyl(s0, s0.clone().addScaledVector(d, -0.15), 0.5 * sc, this.metalMat); }
+    } else if (inj.type === T.CAST) {
+      const L = 14 * sc; const g = this._skinBand(p.y - L, p.y + L * 0.8, 0.7 * sc); if (g) this._put(g, this.castMat);
+    } else if (inj.type === T.BRACE) {
+      const L = 12 * sc; const band = (y) => { const r = Math.abs(y - p.y) / L; return (r > 0.3 && r < 0.48) || (r > 0.8); };
+      const g = this._skinBand(p.y - L, p.y + L, 0.55 * sc, band); if (g) this._put(g, this.braceMat);
+      // hinged side bars
+      const skin = this.meshes.skin; if (skin) { const P = skin.geometry.attributes.position.array; let mn = Infinity, mx = -Infinity, z = 0, m = 0;
+        for (let i = 0; i < P.length; i += 3) if (Math.abs(P[i + 1] - p.y) < 1) { mn = Math.min(mn, P[i]); mx = Math.max(mx, P[i]); z += P[i + 2]; m++; }
+        if (m) { z /= m; for (const x of [mn - 0.6 * sc, mx + 0.6 * sc]) { this._cyl(new THREE.Vector3(x, p.y - L, z), new THREE.Vector3(x, p.y + L, z), 0.3 * sc, this.braceMat); this._cyl(new THREE.Vector3(x - 0.01, p.y, z - 0.5), new THREE.Vector3(x + 0.01, p.y, z + 0.5), 0.9 * sc, this.metalMat); } } }
+    } else if (inj.type === T.REPLACE) {
+      // metal surface over the joint end, plus a stem into the bone toward its middle
+      const g = this.meshes[id].geometry, P = g.attributes.position.array, N = g.attributes.normal.array, I = g.index.array, R = 3.4 * sc;
+      const pos = [], map = new Map(), idx = [];
+      const near = (i) => (P[i * 3] - p.x) ** 2 + (P[i * 3 + 1] - p.y) ** 2 + (P[i * 3 + 2] - p.z) ** 2 < R * R;
+      const vert = (i) => { if (map.has(i)) return map.get(i); const k = pos.length / 3; pos.push(P[i * 3] + N[i * 3] * 0.45, P[i * 3 + 1] + N[i * 3 + 1] * 0.45, P[i * 3 + 2] + N[i * 3 + 2] * 0.45); map.set(i, k); return k; };
+      for (let t = 0; t < I.length; t += 3) if (near(I[t]) && near(I[t + 1]) && near(I[t + 2])) idx.push(vert(I[t]), vert(I[t + 1]), vert(I[t + 2]));
+      if (idx.length) { const cg = new THREE.BufferGeometry(); cg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); cg.setIndex(idx); cg.computeVertexNormals(); this._put(cg, this.metalMat); }
+      if (LONG.has(id)) { const c = this._centre(id); const mid = c[Math.floor(c.length / 2)]; const sgn = p.y > mid.y ? -1 : 1;
+        const near0 = c.reduce((a, q) => (Math.abs(q.y - (p.y + sgn * 3 * sc)) < Math.abs(a.y - (p.y + sgn * 3 * sc)) ? q : a));
+        const far = c.reduce((a, q) => (Math.abs(q.y - (p.y + sgn * 15 * sc)) < Math.abs(a.y - (p.y + sgn * 15 * sc)) ? q : a));
+        this._cyl(id === 'femur' && sgn < 0 ? p.clone().lerp(near0, 0.45) : near0, far, 0.75 * sc, this.metalMat, 0.4 * sc); }
+    }
+  }
+  addGraftScrews(id) {
+    const g = this.meshes[id].geometry, U = g.attributes.uv.array; let u0 = Infinity, u1 = -Infinity;
+    for (let i = 0; i < U.length; i += 2) { u0 = Math.min(u0, U[i]); u1 = Math.max(u1, U[i]); }
+    for (const u of [u0 + 0.05 * (u1 - u0), u1 - 0.05 * (u1 - u0)]) { const r = ringAt(g, u); const t = r.tangent.clone().multiplyScalar(u < (u0 + u1) / 2 ? -1 : 1);
+      this._cyl(r.center.clone().addScaledVector(t, 0.3), r.center.clone().addScaledVector(t, 1.4), 0.3, this.metalMat); }
   }
 
   syncExtras() {

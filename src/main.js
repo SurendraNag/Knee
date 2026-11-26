@@ -596,7 +596,7 @@ function chooseInjTarget(id) {
   const info = STRUCTURES[id], kind = injuryKind(id);
   $('#inj-target-group').textContent = info.group;
   $('#inj-target').textContent = info.name;
-  $('#inj-types').innerHTML = injuryTypesFor(id).map((t) => `<button data-type="${t.type}">${t.label}<small>${t.sub}</small></button>`).join('');
+  { let hdr = false; $('#inj-types').innerHTML = injuryTypesFor(id).map((t) => { const h = t.treatment && !hdr ? (hdr = true, '<div class="inj-types-head">After treatment</div>') : ''; return `${h}<button data-type="${t.type}">${t.label}<small>${t.sub}</small></button>`; }).join(''); }
   $('#inj-types').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
     state.injType = Number(b.dataset.type);
     $('#inj-tap-msg').textContent = `Now tap the exact spot on the ${info.short} where the ${typeInfo(kind, state.injType).label.toLowerCase()} should appear.`;
