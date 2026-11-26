@@ -15,14 +15,7 @@
     <div class="disclaimer" role="note">Educational demo, not for diagnosis</div>
   </header>
 
-  <nav class="modes" aria-label="Apps">
-    <button class="on" aria-current="page">Whole body</button>
-    <a class="btnlink" href="./index.html">Leg</a>
-    <a class="btnlink" href="./hand.html">Hand</a>
-    <a class="btnlink" href="./shoulder.html">Shoulder</a>
-    <a class="btnlink" href="./spine.html">Spine</a>
-    <a class="btnlink" href="./head.html">Skull</a>
-  </nav>
+  <nav class="modes" aria-label="Body part"></nav>
 
   <aside class="systems" aria-label="Body systems">
     <div class="systems-head">
@@ -31,7 +24,7 @@
     </div>
     <div id="sys-list" class="sys-list"></div>
     <div class="search">
-      <input id="search" type="search" placeholder="Find a part, e.g. left femur" autocomplete="off" />
+      <input id="search" type="search" placeholder="Find a part or injury, e.g. left femur" autocomplete="off" spellcheck="false" aria-label="Find a part, or an injury on another page" />
       <ul id="results" class="results" hidden></ul>
     </div>
     <p class="credit-in" id="credit-in">Model: <a href="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html" target="_blank" rel="noopener">BodyParts3D</a>, © The Database Center for Life Science, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>. Adult male reference; simplified for the web.</p>
@@ -46,7 +39,7 @@
       <button id="act-zoom">Zoom to it</button>
       <button id="act-only" aria-pressed="false">Show only this</button>
       <button id="act-hide">Hide it</button>
-      <a id="act-knee" class="btnlink" href="./index.html" hidden>Open knee injuries</a>
+      <a id="act-knee" class="btnlink primary" href="./leg.html" hidden>Show injuries</a>
     </div>
   </section>
 

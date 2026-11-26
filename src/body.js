@@ -5,6 +5,8 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { acceleratedRaycast, MeshBVH } from 'three-mesh-bvh';
 import './style.css';
 import { APP_VERSION } from './version.js';
+import { pageOf, keepParams } from './catalog.js';
+import { mountSearch, mountNav } from './search.js';
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 const $ = (s) => document.querySelector(s);
@@ -131,6 +133,19 @@ const VHF_INFO = [
   [/lateral collateral/i, 'The lateral collateral ligament (LCL): on the outer side of the knee, from the femur to the head of the fibula. It resists the knee being pushed outward.'],
   [/^coccyx$/i, 'The coccyx (tailbone): three to five small fused vertebrae at the bottom of the spine.'],
 ];
+// which detailed page (with Injury mode) a part of the whole body opens in
+const DETAIL = [
+  ['head', /\b(frontal|parietal|temporal|occipital|sphenoid|ethmoid|nasal bone|maxilla|zygomatic|palatine|vomer|lacrimal|mandible|tooth|hyoid|gingiva|masseter|temporalis)\b/i],
+  ['spine', /\b(vertebra|atlas|axis|sacrum|coccyx|intervertebral|rib|costal|sternum|manubrium|xiphoid|erector|multifidus|psoas)\b/i],
+  ['hand', /\b(scaphoid|lunate|triquetral|pisiform|trapezium|trapezoid|capitate|hamate|metacarpal|finger|thumb|carpal|pollicis|palmar|interosse\w* of hand)\b/i],
+  ['shoulder', /\b(clavicle|scapula|humerus|radius|ulna|deltoid|supraspinatus|infraspinatus|teres|subscapularis|biceps brachii|triceps|brachialis|coracobrachialis|pectoralis|rhomboid|levator scapulae|serratus anterior|trapezius)\b/i],
+  ['leg', /\b(hip bone|femur|tibia|fibula|patella|talus|calcaneus|cuboid|navicular bone|cuneiform bone|metatarsal|toe|sesamoid bone of|gluteus|quadriceps|vastus|rectus femoris|biceps femoris|semitendinosus|semimembranosus|gastrocnemius|soleus|popliteus|sartorius|gracilis|plantaris|adductor|iliotibial|tibialis|fibularis|achilles|calcaneal)\b/i],
+];
+function detailPage(name) {
+  const hit = DETAIL.find(([, re]) => re.test(name)); if (!hit) return null;
+  const pg = pageOf(hit[0]), side = /\bleft\b/i.test(name) && ['leg', 'hand', 'shoulder'].includes(hit[0]) ? 'left' : null;
+  return { name: pg.name, url: `./${pg.page}${keepParams({ side })}` };
+}
 const KNEE_PARTS = /femur|tibia|fibula|patella|quadriceps|vastus|rectus femoris|biceps femoris|semitendinosus|semimembranosus|gastrocnemius|popliteus|sartorius|gracilis|plantaris/i;
 const packs = {}; // id -> { info, mesh, state(Uint8Array RGBA), tex, parts, loaded, loading }
 const allParts = []; // { pack, i, p }
@@ -251,7 +266,9 @@ function select(packId, i, { fly = false } = {}) {
   const vhf = p.vhf ? (VHF_INFO.find(([re]) => re.test(p.name))?.[1] || what0) + ' Shape from the Visible Human Female scans (a real woman), fitted to this body. (Preview: waiting for a doctor to review.)' : null;
   const what = fem ? fem + ' (Preview: waiting for a doctor to review.)' : vhf || what0;
   $('#info-group').textContent = group; $('#info-name').textContent = p.name; $('#info-what').textContent = what;
-  $('#act-knee').hidden = !(KNEE_PARTS.test(p.name) && /right/i.test(p.name));
+  const dp = detailPage(p.name);
+  $('#act-knee').hidden = !dp;
+  if (dp) { $('#act-knee').href = dp.url; $('#act-knee').textContent = `Open ${dp.name.toLowerCase()} injuries`; }
   $('#info').classList.remove('hidden');
   applyFocus();
   if (fly) zoomTo(packId, i);
@@ -310,21 +327,13 @@ function buildSystemsUI() {
   $('#sys-toggle').onclick = () => { const c = document.querySelector('.systems').classList.toggle('collapsed'); $('#sys-toggle').textContent = c ? 'Show' : 'Hide'; $('#sys-toggle').setAttribute('aria-expanded', String(!c)); };
   if (innerWidth < 700) $('#sys-toggle').click();
 }
-const search = $('#search'), results = $('#results');
-search.addEventListener('input', () => {
-  const q = search.value.trim().toLowerCase(); results.innerHTML = '';
-  if (q.length < 2) { results.hidden = true; return; }
-  const words = q.split(/\s+/);
-  const hits = allParts.filter((a) => words.every((w) => a.lname.includes(w))).slice(0, 30);
-  for (const a of hits) {
-    const li = document.createElement('li'); li.tabIndex = 0;
-    li.innerHTML = `${a.p.name}<small>${packs[a.pack].info.label}</small>`;
-    const go = async () => { results.hidden = true; search.value = a.p.name; await setSystem(a.pack, true); select(a.pack, a.i, { fly: true }); };
-    li.onclick = go; li.onkeydown = (e) => e.key === 'Enter' && go();
-    results.appendChild(li);
-  }
-  results.hidden = !hits.length;
-});
+// one search box: parts of this body first, then injuries, structures and pages elsewhere in the app
+const bnorm = (t) => ` ${t.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()} `;
+mountSearch($('#search'), $('#results'), { here: 'body', max: 30, extra: () => allParts.map((a) => ({
+  kind: 'part', limb: 'body', label: a.p.name, sub: packs[a.pack].info.label, text: a.ntext ||= bnorm(a.p.name),
+  run: async () => { $('#search').value = a.p.name; await setSystem(a.pack, true); select(a.pack, a.i, { fly: true }); },
+})) });
+mountNav($('.modes'), 'body');
 for (const b of document.querySelectorAll('[data-view]')) b.onclick = () => flyTo(controls.target.clone(), VIEWS[b.dataset.view], camera.position.distanceTo(controls.target));
 $('#reset').onclick = () => goRegion('whole');
 $('#region').onchange = (e) => { goRegion(e.target.value); e.target.value = ''; };

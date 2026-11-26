@@ -1,4 +1,4 @@
-// Which body part this page shows. index.html is the leg, hand.html the forearm and hand
+// Which body part this page shows. leg.html is the leg, hand.html the forearm and hand
 // (<html data-limb="hand">). Everything that differs between them lives here.
 import * as LEG from './structures.js';
 import * as HAND from './hand-structures.js';
