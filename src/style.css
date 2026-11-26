@@ -326,3 +326,4 @@ html:not(.patient) body.mode-injury .show-chip { left: var(--hist-right, 232px);
 .big-text .types button { font-size: 17px; }
 .big-text .types button small { font-size: 14px; }
 .big-text .disclaimer { font-size: 14px; }
+.types .inj-types-head { grid-column: 1 / -1; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; opacity: .7; margin: 8px 0 2px; }

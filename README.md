@@ -310,6 +310,12 @@ Each release is tagged (`v0.1.0`, `v0.2.0-preview`, …) and deployed to its own
   hamstring strain, calf strain, bruised thigh (dead leg), compartment syndrome of the shin, crushed lower leg (crushed
   muscle, shin bone in several pieces, broken fibula), open fracture of the shin, DVT, fibular nerve injury (foot drop),
   low back muscle strain and crushed fingertip. All soft tissue injuries and their wording are for doctor review.
+- v0.24.0-preview: panel fixes round 4, after treatment. Bones now have an "After treatment" group: plate and screws, rod
+  inside the bone (nail, long bones only), screws, cast, brace or splint, and joint replacement; ligaments can be shown
+  reconstructed with a graft (with fixation screws). New quick picks: rod in the thigh bone, screws in a broken hip, hip
+  replacement, knee replacement, ACL reconstruction, knee brace, plate on the ankle, plate on a broken wrist and wrist
+  fracture in a cast. These are simplified illustrations, not a specific implant or technique, and are for doctor review
+  (implant sizes and positions, hip screw angle, how a cast or brace looks).
 - v0.22.0-preview: panel fixes round 2. Each finger and thumb bone is its own structure (base, middle and tip bone; the
   thumb has a base and a tip bone), so a break goes on the right one; old links that marked a whole finger move the injury to the
   nearest finger bone. Degenerative conditions: a worn (degenerated) disc, a disc bulge narrowing the canal (spinal stenosis),
