@@ -16,9 +16,9 @@ export const STRUCTURES = {
     injuries: ['Ankle fractures of the outer ankle bone, the most common ankle fracture', 'Fracture from a direct blow to the outside of the knee', 'A piece can be pulled off when the outer ligaments tear'],
   },
   patella: {
-    short: 'kneecap', name: 'Kneecap (patella)', group: 'Bone', layer: 4, kind: 'bone',
+    short: 'kneecap', name: 'Kneecap (patella)', group: 'Bone', layer: 4, kind: 'bone', chondro: true,
     what: 'A bone that sits inside the front thigh muscle tendon. It works like a pulley so the thigh muscles can straighten the knee with less effort.',
-    injuries: ['Fracture from falling straight onto the knee', 'Dislocation, where it slips out to the side', 'Pain at the front of the knee from overuse'],
+    injuries: ['Fracture from falling straight onto the knee', 'Dislocation, where it slips out to the side', 'Softening and wear of the cartilage behind it (chondromalacia patella)', 'Pain at the front of the knee from overuse'],
   },
   femoral_cartilage: {
     name: 'Cartilage of the thigh bone', group: 'Cartilage', layer: 3, kind: 'cartilage',
@@ -33,7 +33,7 @@ export const STRUCTURES = {
   patellar_cartilage: {
     name: 'Cartilage behind the kneecap', group: 'Cartilage', layer: 3, kind: 'cartilage',
     what: 'The thickest cartilage in the body. It lets the kneecap glide in its groove on the thigh bone.',
-    injuries: ['Softening and roughening (chondromalacia)', 'Wear that hurts on stairs or when squatting'],
+    injuries: ['Softening and roughening (chondromalacia patella, graded I to IV). In Injury mode, tap the kneecap or this cartilage to show it', 'Wear that hurts on stairs or when squatting'],
   },
   acl: {
     short: 'ACL', name: 'Anterior cruciate ligament (ACL)', group: 'Ligament', layer: 2, kind: 'ligament',

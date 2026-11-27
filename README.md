@@ -47,6 +47,10 @@ left leg opens on the left leg.
    - Menisci: split, bucket-handle, flap tear
    - Hip labrum: labral tear, flap tear
    - Bones (every leg bone, from the hip bone to the toes): hairline crack, displaced break, shattered break, bone bruise, stress fracture
+   - Kneecap: also **chondromalacia patella**, grade I to IV, drawn on the cartilage behind the kneecap (tap the kneecap or that cartilage).
+     Grade I softened and slightly swollen, surface still smooth; II small surface cracks less than halfway deep; III deep cracks
+     more than halfway, frayed surface; IV worn through, bone showing. A tag placed on the front of the kneecap moves to the
+     same height and side on the cartilage behind it.
 3. Tap the exact spot. The injury snaps to the nearest surface and gets a numbered red tag with a one-sentence explanation.
    Use the **Undo** and **Redo** arrows at the top left, the **×** next to an injury, or the red **Clear all** button.
 
@@ -310,6 +314,15 @@ Each release is tagged (`v0.1.0`, `v0.2.0-preview`, …) and deployed to its own
   hamstring strain, calf strain, bruised thigh (dead leg), compartment syndrome of the shin, crushed lower leg (crushed
   muscle, shin bone in several pieces, broken fibula), open fracture of the shin, DVT, fibular nerve injury (foot drop),
   low back muscle strain and crushed fingertip. All soft tissue injuries and their wording are for doctor review.
+- v0.27.0-preview: chondromalacia patella. Kneecap injuries now include chondromalacia grade I to IV (softened; small
+  cracks; deep cracks and fraying; worn through to bone) on the cartilage behind the kneecap, on both legs. Quick pick
+  "Chondromalacia patella" (grade II, seen from behind with the thigh bone and the middle of the joint hidden), and search
+  finds it as chondromalacia, runner's knee, patellofemoral pain or anterior knee pain. Tapping the cartilage behind the
+  kneecap in Injury mode picks the kneecap. **For doctor review:** the grading follows the modified Outerbridge scale (II
+  and III split at half the cartilage depth; the original scale splits by patch size, 1.5 cm); patch sizes and look of
+  each grade; the default spot (middle of the cartilage; often the inner facet or central ridge in real life); and the
+  patient wording, including "early changes often settle with the right exercises" for grade I and "the same as arthritis
+  of the joint between the kneecap and the thigh bone" for grade IV.
 - v0.25.0-preview: easier on iPhone. Tapping the 3D model is finger-sized on every page: a tap may wobble a little
   (14 px) before it counts as turning the model, and when the exact point misses a thin part (ligament, nerve, vessel,
   disc) the nearest part within about 20 px is chosen. iPhone Safari no longer zooms the whole page on a pinch over a
