@@ -14,6 +14,7 @@ import { makeMaterials } from './materials.js';
 import { fade } from './spine-structures.js';
 import { APP_VERSION } from './version.js';
 import { tapStart, isTap, fingerPick, lockPageZoom } from './touch.js';
+import { mountChat } from './chat.js';
 lockPageZoom();
 import './style.css';
 import './spine-move.css';
@@ -768,3 +769,17 @@ controls.addEventListener('change', schedule);
     console.error(err); $('#loading').textContent = 'Could not load the spine. Please reload the page.';
   }
 })();
+
+mountChat({
+  extraContext: () => {
+    const o = (id) => document.querySelector(id)?.textContent || 'straight';
+    const out = [`Spine posture shown: bend ${o('#flex-o')}, side bend ${o('#lat-o')}, twist ${o('#rot-o')}.`];
+    const st = document.querySelector('#disc-status');
+    if (state.sel && st && st.textContent.trim()) out.push(`Selected disc: ${st.textContent.replace(/\s+/g, ' ').trim()}`);
+    const pushed = Object.entries(herni).filter(([, h]) => h.m > 0.02).map(([d, h]) => `${d.replace(/_/g, '-')} pushed out ${Math.round(h.m * 100)}%`);
+    if (pushed.length) out.push(`Discs pushed out: ${pushed.join(', ')}.`);
+    return out;
+  },
+  suggestions: () => state.sel ? ['Which nerve does this disc press on, and what would the patient feel?', 'Explain a slipped disc to a patient in simple words.', 'How is a herniated disc treated?', 'When is surgery needed for a herniated disc?']
+    : ['How does bending forward affect the discs?', 'What is sciatica?', 'Explain a slipped disc to a patient in simple words.'],
+});
