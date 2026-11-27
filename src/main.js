@@ -20,6 +20,7 @@ for (const s of Object.values(STRUCTURES)) if (!s.short && s.name) s.short = s.n
 import { mountSearch, mountNav } from './search.js';
 import { createModesty, modestyButton, REGIONS as PRIVATE } from './modesty.js';
 import { tapStart, isTap, fingerPick, lockPageZoom } from './touch.js';
+import { mountChat } from './chat.js';
 lockPageZoom();
 export { APP_VERSION };
 const $ = (s) => document.querySelector(s);
@@ -1191,6 +1192,11 @@ function loop(now) {
   if (!PATIENT && qs.has('pick')) applyCommon(COMMON.find((c) => c.key === qs.get('pick') && c.limb === LIMB));
   if (qs.has('find') && meshes[qs.get('find')]) findStructure(qs.get('find'));
   if (qs.has('pick') || qs.has('find')) { const u = new URL(location.href); u.searchParams.delete('pick'); u.searchParams.delete('find'); history.replaceState(null, '', u); }
+  mountChat({ extraContext: () => [
+    LIMB === 'leg' || LIMB === 'hand' ? `Side shown: ${state.side === 'left' ? 'left' : 'right'}.` : '',
+    `Mode: ${state.mode === 'injury' ? 'Injury (marking injuries)' : 'Explore'}.`,
+    `Layers: ${$('#peel-label').textContent}.${state.xray ? ' Bone is see-through.' : ''}`,
+  ] });
   $('#loading').classList.add('done');
   window.__ready = { loadMs: Math.round(performance.now() - t0) };
   requestAnimationFrame(loop);

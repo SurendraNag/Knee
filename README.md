@@ -301,6 +301,20 @@ International (https://creativecommons.org/licenses/by/4.0/). Changes: cropped t
 smoothed; see `data/bodyparts3d/README.md`. Source files via the npm package
 `@somakine/bodyparts3d-musculoskeletal` (CC BY 4.0, geometry unchanged).
 
+## Ask AI setup
+
+Ask AI uses an AI model on your own computer, so answers are only as good as that model and can be wrong: education only.
+
+- **Ollama on a Mac**: in Terminal run `launchctl setenv OLLAMA_ORIGINS "https://knee.surendranag.workers.dev"`, then quit
+  and reopen Ollama (this lets this website, and only it, call Ollama; repeat after a restart of the Mac). Open the site in
+  Chrome or Edge, allow access to apps on this device if asked, open Ask AI and press Connect. The panel picks a general
+  model (it skips embedding and coding models); change it with the gear button. "Thinking" is turned off so answers start
+  quickly.
+- **LM Studio**: start the server in the Developer tab with *Enable CORS* on, and choose "LM Studio on this computer".
+- **iPhone or iPad**: the page is https, so it can only reach an AI at an https address (for example a Tailscale address
+  for the Mac). Plain `http://` addresses of other computers are blocked by the browser.
+- Add `?chat=0` to a link to hide Ask AI, or `?chat=open` to open it at start.
+
 ## Versions
 
 Each release is tagged (`v0.1.0`, `v0.2.0-preview`, …) and deployed to its own link so earlier versions stay available.
@@ -323,6 +337,12 @@ Each release is tagged (`v0.1.0`, `v0.2.0-preview`, …) and deployed to its own
   each grade; the default spot (middle of the cartilage; often the inner facet or central ridge in real life); and the
   patient wording, including "early changes often settle with the right exercises" for grade I and "the same as arthritis
   of the joint between the kneecap and the thigh bone" for grade IV.
+- v0.26.0-preview: Ask AI. A chat panel (the *Ask AI* button, and *Ask AI* on a part's card) on the home, body, leg, hand,
+  shoulder, spine, head and Spine Movement pages talks to an AI model running on the clinician's own computer (Ollama or
+  LM Studio, or any OpenAI-compatible server). It tells the model what is on screen (page, side, selected part and its
+  description, injuries marked, layers, spine posture and disc) so questions like "how is this treated?" or "explain this
+  to a patient" work. The browser talks to the AI directly: nothing goes to our server, settings stay on the device and the
+  chat stays in that browser tab. Not shown in patient links or embeds. See *Ask AI setup* below.
 - v0.25.0-preview: easier on iPhone. Tapping the 3D model is finger-sized on every page: a tap may wobble a little
   (14 px) before it counts as turning the model, and when the exact point misses a thin part (ligament, nerve, vessel,
   disc) the nearest part within about 20 px is chosen. iPhone Safari no longer zooms the whole page on a pinch over a

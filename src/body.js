@@ -9,6 +9,7 @@ import { pageOf, keepParams } from './catalog.js';
 import { mountSearch, mountNav } from './search.js';
 import { createModesty, modestyButton, REGIONS as PRIVATE } from './modesty.js';
 import { tapStart, isTap, fingerPick, lockPageZoom } from './touch.js';
+import { mountChat } from './chat.js';
 lockPageZoom();
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
@@ -388,3 +389,5 @@ function loop(now) {
   // warm the muscles in the background so the first toggle is quick
   if (!qs.has('nowarm')) setTimeout(() => loadPack('muscles'), 1500);
 })();
+
+mountChat();

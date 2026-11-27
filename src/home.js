@@ -4,6 +4,7 @@ import './home.css';
 import { PAGES, COMMON, commonUrl, keepParams } from './catalog.js';
 import { mountSearch } from './search.js';
 import { APP_VERSION } from './version.js';
+import { mountChat } from './chat.js';
 
 const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const SHOW = 6; // common injuries listed on a tile before "more"
@@ -31,3 +32,5 @@ document.querySelectorAll('[data-more]').forEach((b) => b.addEventListener('clic
   const ul = b.closest('ul'); ul.querySelectorAll('.extra').forEach((li) => { li.hidden = false; }); b.parentElement.remove();
 }));
 mountSearch(document.getElementById('find'), document.getElementById('find-results'), { here: 'home', max: 14 });
+
+mountChat({ suggestions: () => ['What is an ACL tear, in simple words?', 'How do I explain a rotator cuff tear to a patient?', 'What is the difference between a sprain and a strain?'] });
