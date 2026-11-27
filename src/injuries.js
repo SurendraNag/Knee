@@ -18,7 +18,11 @@ export const T = {
   NBRUISE: 51, NCUT: 52, VTEAR: 53, CLOT: 54,
   // after treatment (v0.24): drawn as extra parts (metal, cast, brace) on top of the anatomy
   PLATE: 61, ROD: 62, SCREWS: 63, CAST: 64, BRACE: 65, GRAFT: 66, REPLACE: 67,
+  // cartilage behind the kneecap (v0.26): chondromalacia patella, grades I to IV (modified Outerbridge), drawn on the
+  // patellar cartilage, which shares the kneecap's injury slots
+  CM1: 71, CM2: 72, CM3: 73, CM4: 74,
 };
+const CM_SAY = 'It is a common cause of an ache at the front of the knee, especially on stairs, squatting, kneeling or after sitting for a long time with the knee bent.';
 
 export const INJURY_TYPES = {
   muscle: [
@@ -81,6 +85,10 @@ export const INJURY_TYPES = {
     { type: T.SHATTERED, label: 'Break in several pieces', sub: 'Comminuted fracture', say: (s) => `The ${s} is broken into several pieces at this spot (a comminuted fracture).` },
     { type: T.BRUISE, label: 'Bone bruise', sub: 'Soft discoloured patch', say: (s) => `The ${s} is bruised inside: bleeding and swelling in the bone, without a break.` },
     { type: T.STRESS, label: 'Stress fracture', sub: 'Faint line, slight swelling', say: (s) => `A small crack in the ${s} from repeated strain, with slight swelling around it.` },
+    { type: T.CM1, only: 'chondro', label: 'Chondromalacia grade I', sub: 'Cartilage softened, still smooth', say: () => `The cartilage behind the kneecap has become soft and slightly swollen in this area (chondromalacia patella, grade I). Its surface is still smooth. ${CM_SAY} Early changes like this often settle with the right exercises; your clinician will say what applies to you.` },
+    { type: T.CM2, only: 'chondro', label: 'Chondromalacia grade II', sub: 'Small surface cracks, less than half deep', say: () => `The cartilage behind the kneecap is softened, and its surface has started to roughen, with small cracks that go less than halfway into it (chondromalacia patella, grade II). ${CM_SAY}` },
+    { type: T.CM3, only: 'chondro', label: 'Chondromalacia grade III', sub: 'Deep cracks, frayed surface', say: () => `The cartilage behind the kneecap has deeper cracks that reach more than halfway through it, and its surface is frayed (chondromalacia patella, grade III). The rough surface can grind or click as the kneecap moves. ${CM_SAY}` },
+    { type: T.CM4, only: 'chondro', label: 'Chondromalacia grade IV', sub: 'Worn through to the bone', say: () => `In this area the cartilage behind the kneecap has worn away completely, so the bone underneath is showing (chondromalacia patella, grade IV). This is the same as arthritis of the joint between the kneecap and the thigh bone.` },
     { type: T.ARTHRITIS, label: 'Arthritis (bone spurs)', sub: 'Worn joint edge, bony lumps', say: (s) => `The joint surface of the ${s} is worn here, and the bone has grown small lumps (bone spurs) at the edge. This is osteoarthritis; it can cause stiffness and aching.` },
     { type: T.PLATE, treatment: true, label: 'Plate and screws', sub: 'Metal plate on the bone', say: (s) => `A metal plate is screwed onto the ${s} to hold the broken pieces in line while the bone heals.` },
     { type: T.ROD, treatment: true, only: 'long', label: 'Rod inside the bone (nail)', sub: 'Metal rod down the middle', say: (s) => `A metal rod (an intramedullary nail) runs down the inside of the ${s}, locked with a screw at each end, to hold the break in line while it heals. It usually stays in.` },
@@ -140,6 +148,10 @@ for (int i = 0; i < ${MAX}; i++) { if (i >= uInjN) break;
   if (ty == 26) { float d = length(position - p); float f = 1.0 - smoothstep(0.4, 1.4, d);
     float bump = smoothstep(0.45, 0.8, inz(position * 3.2 + uInjB[i].w)); injPos += objectNormal * (0.1 + 0.5 * bump) * f; }
   if (ty == 27) { injPos += vec3(0.0, 0.0, 0.75); }
+  #ifdef INJ_CART
+  if (ty >= 71 && ty <= 73) { float d = length(position - p); float R = ty == 71 ? 1.5 : ty == 72 ? 1.4 : 1.7;
+    injPos += objectNormal * (ty == 71 ? 0.11 : 0.06) * (1.0 - smoothstep(R * 0.35, R, d + (inz(position * 2.0 + uInjB[i].w) - 0.5) * 0.4)); }
+  #endif
   // soft tissue
   if (ty == 32) { vec3 r0 = position - p; float dy = r0.y; float rad = length(r0 - vec3(0.0, dy, 0.0));
     injPos += vec3(0.0, sign(dy) * 0.6 * exp(-abs(dy) / 2.5), 0.0) * (1.0 - smoothstep(2.5, 5.0, rad)); }
@@ -208,6 +220,34 @@ const BONE_FRAG = /* glsl */ `
       if (d + (inz(vIP * 2.5 + seed) - 0.5) * 0.6 < 1.15) discard; // the cartilage is worn through here
       #endif
       col = mix(col, vec3(0.80, 0.72, 0.52), f * 0.55 * (0.6 + 0.4 * inz(vIP * 6.0)));
+    }
+    if (ty >= 71 && ty <= 74) {
+      // chondromalacia: patch on the cartilage behind the kneecap; size and depth grow with the grade
+      float R = ty == 71 ? 1.7 : ty == 72 ? 1.7 : ty == 73 ? 1.9 : 2.0;
+      float d = length(rel) + (inz(vIP * 1.6 + seed) - 0.5) * 0.45;
+      float f = 1.0 - smoothstep(R * 0.45, R, d);
+      #ifdef INJ_CART
+      // softened: duller, slightly yellow-grey, blotchy
+      col = mix(col, mix(vec3(0.84, 0.76, 0.56), vec3(0.72, 0.62, 0.46), inz(vIP * 5.0 + seed)), f * (ty == 71 ? 0.7 : 0.82));
+      if (ty >= 72) {
+        // cracks: a network of thin lines (fibrillation), finer and shallower in grade II
+        float sc = ty == 72 ? 5.5 : 4.0;
+        float c1 = abs(inz(vIP * sc + seed) - 0.5), c2 = abs(inz(vIP * sc * 1.9 + seed + 3.1) - 0.5);
+        float w = ty == 72 ? 0.05 : 0.075;
+        float crack = max(1.0 - smoothstep(w * 0.4, w, c1), (1.0 - smoothstep(w * 0.3, w * 0.8, c2)) * 0.7) * f;
+        if (ty == 73 && crack > 0.85 && f > 0.35) discard; // deep fissures, through to the bone below in places
+        col = mix(col, vec3(0.36, 0.26, 0.20), crack * (ty == 72 ? 0.75 : 0.9));
+        if (ty == 73) col = mix(col, vec3(0.86, 0.80, 0.68), 0.35 * f * step(0.62, inz(vIP * 14.0 + seed))); // frayed tufts
+      }
+      if (ty == 74) {
+        if (d < R * 0.62) discard; // worn through: the bone shows
+        float rim = 1.0 - smoothstep(R * 0.62, R * 0.95, d);
+        col = mix(col, vec3(0.62, 0.52, 0.40), rim * 0.7 * (0.6 + 0.4 * inz(vIP * 12.0 + seed)));
+      }
+      #else
+      // the bone under worn-through cartilage (grade IV): bare, polished, a little reddish
+      if (ty == 74) col = mix(col, mix(vec3(0.78, 0.58, 0.46), vec3(0.66, 0.42, 0.34), inz(vIP * 6.0 + seed)), (1.0 - smoothstep(R * 0.5, R * 0.8, d)) * 0.8);
+      #endif
     }
     if (ty == 24) {
       float sd = dot(rel, uInjB[i].xyz) + (inz(vIP * 2.2 + seed) - 0.5) * 0.5;
@@ -296,7 +336,7 @@ function patchMaterial(mat, uniforms, family, cartilage = false) {
   mat.onBeforeCompile = (sh, r) => {
     if (prev) prev(sh, r);
     Object.assign(sh.uniforms, uniforms);
-    sh.vertexShader = sh.vertexShader.replace('#include <common>', `#include <common>\n${NOISE}\n${UNI}\n${family === 'sweep' ? 'attribute vec3 aCen; attribute vec3 aTan; attribute vec3 aSide; attribute float aRad;' : ''}`);
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', `#include <common>\n${cartilage ? '#define INJ_CART 1' : ''}\n${NOISE}\n${UNI}\n${family === 'sweep' ? 'attribute vec3 aCen; attribute vec3 aTan; attribute vec3 aSide; attribute float aRad;' : ''}`);
     if (family === 'bone') {
       sh.vertexShader = sh.vertexShader
         .replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>\n${BONE_VERT_NORMAL}`)
@@ -400,8 +440,27 @@ export class InjuryManager {
     return { p: p.toArray(), n: nrm.toArray() };
   }
 
+  // Chondromalacia sits on the cartilage behind the kneecap. A tap on the bone (often its front) moves to the
+  // matching spot on that cartilage: same height, same inner/outer side.
+  snapToCartilage(id, type, anchor) {
+    if (type < T.CM1 || type > T.CM4) return anchor;
+    const cid = (CARTILAGE_OF[id] || [])[0], cm = cid && this.meshes[cid], bm = this.meshes[id];
+    if (!cm) return anchor;
+    const cg = cm.geometry, p = new THREE.Vector3().fromArray(anchor.p);
+    let r = cg.boundsTree.closestPointToPoint(p);
+    if (r.distance > 0.6) {
+      if (!cg.boundingBox) cg.computeBoundingBox(); if (!bm.geometry.boundingBox) bm.geometry.computeBoundingBox();
+      const cc = cg.boundingBox.getCenter(new THREE.Vector3()), bc = bm.geometry.boundingBox.getCenter(new THREE.Vector3());
+      const off = p.clone().sub(bc); off.z = 0;
+      r = cg.boundsTree.closestPointToPoint(cc.add(off.multiplyScalar(0.7)));
+    }
+    const ia = cg.index.array[r.faceIndex * 3];
+    return { p: r.point.toArray(), n: new THREE.Vector3().fromBufferAttribute(cg.attributes.normal, ia).normalize().toArray() };
+  }
+
   add(id, type, anchor, seed = Math.random()) {
     if (this.list.filter((x) => x.id === id).length >= MAX) return null;
+    anchor = this.snapToCartilage(id, type, anchor);
     const inj = { id, type, anchor, seed: Math.round(seed * 1000) / 1000 };
     this.list.push(inj);
     this.rebuild();

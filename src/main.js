@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
-import { STRUCTURES, LAYERS, CFG, LIMB } from './limbs.js';
+import { STRUCTURES, LAYERS, CFG, LIMB, CARTILAGE_OF } from './limbs.js';
 import { makeMaterials } from './materials.js';
 import { InjuryManager, injuryTypesFor, injuryKind, typeInfo } from './injuries.js';
 import './style.css';
@@ -517,7 +517,9 @@ controls.addEventListener('change', () => {
 function injuryTap() {
   if (state.step === 3) {
     const mesh = meshes[state.injTarget];
-    const hit = ray.intersectObject(mesh, false)[0];
+    // a tap on the bone's cartilage counts as a tap on the bone (chondromalacia goes on the cartilage behind the kneecap)
+    const cart = (CARTILAGE_OF[state.injTarget] || []).map((c) => meshes[c]).filter((m) => m && m.visible && !m.userData.faded);
+    const hit = ray.intersectObjects([mesh, ...cart], false)[0];
     let point;
     if (hit) point = hit.point;
     else { // snap: closest point on the structure to the tap ray
@@ -536,10 +538,12 @@ function injuryTap() {
   if (hit) chooseInjTarget(hit.object.userData.id);
 }
 // the first structure under the ray that can be injured
+const CART_PICK = { patellar_cartilage: 'patella' };
 function injuryHit() {
   const pickable = Object.values(meshes).filter((m) => m.visible && !m.userData.faded && injuryKind(m.userData.id));
   const hits = ray.intersectObjects(Object.values(meshes).filter((m) => m.visible && !m.userData.faded), false).filter((h) => fadeAt(h.point) > 0.5 && inJoint(h.point));
-  return hits.find((h) => pickable.includes(h.object)) || null;
+  // the cartilage behind the kneecap picks the kneecap, whose list holds chondromalacia
+  return hits.map((h) => CART_PICK[h.object.userData.id] && meshes[CART_PICK[h.object.userData.id]] ? { ...h, object: meshes[CART_PICK[h.object.userData.id]] } : h).find((h) => pickable.includes(h.object)) || null;
 }
 
 // ---------- undo / redo of injuries (arrows at the top left, only while placing injuries) ----------

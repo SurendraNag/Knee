@@ -23,7 +23,7 @@ export const pageOf = (limb) => PAGES.find((p) => p.limb === limb);
 
 const G1 = 1, G2 = 2, G3 = 3, SPLIT = 11, BUCKET = 12, FLAP = 13, WORN = 14, STENOSIS = 15, STRESS = 22, HAIRLINE = 23, DISPLACED = 24, ARTHRITIS = 26, SLIP = 27, SHATTERED = 25,
   STRAIN = 31, CONTUSION = 33, CRUSH = 34, COMPART = 35, CUT = 41, OPENFX = 42, NBRUISE = 51, CLOT = 54,
-  PLATE = 61, ROD = 62, SCREWS = 63, CAST = 64, BRACE = 65, GRAFT = 66, REPLACE = 67;
+  PLATE = 61, ROD = 62, SCREWS = 63, CAST = 64, BRACE = 65, GRAFT = 66, REPLACE = 67, CM2 = 72;
 
 export const COMMON = [
   // ---- knee and leg (model: right leg, +X toward the inside of the leg, +Z front) ----
@@ -34,6 +34,7 @@ export const COMMON = [
   { key: 'lcl-sprain', limb: 'leg', label: 'LCL sprain', id: 'lcl', type: G2, from: [-1, 0.1, 0.2], dist: 30, aka: ['outer knee ligament', 'lateral collateral'] },
   { key: 'pcl-tear', limb: 'leg', label: 'PCL tear', id: 'pcl', type: G3, from: [0.25, 0.1, -1], xray: true, dist: 26, aka: ['posterior cruciate'] },
   { key: 'patellar-tendon-rupture', limb: 'leg', label: 'Patellar tendon rupture', id: 'patellar_tendon', type: G3, from: [0.35, 0.1, 1], dist: 30, aka: ['kneecap tendon'] },
+  { key: 'chondromalacia-patella', limb: 'leg', label: 'Chondromalacia patella', id: 'patella', type: CM2, from: [0.45, 0.25, -1], dist: 24, hide: ['femur', 'femoral_cartilage', 'medial_meniscus', 'lateral_meniscus', 'acl', 'pcl'], aka: ['chondromalacia', 'chondromalacia patellae', 'soft kneecap cartilage', 'kneecap cartilage', 'runners knee', "runner's knee", 'patellofemoral pain', 'anterior knee pain', 'cmp'] },
   { key: 'kneecap-fracture', limb: 'leg', label: 'Kneecap fracture', id: 'patella', type: DISPLACED, from: [0.2, 0.1, 1], dist: 28, aka: ['broken kneecap', 'patella fracture'] },
   { key: 'ankle-sprain', limb: 'leg', label: 'Ankle sprain (ATFL)', id: 'atfl', type: G2, from: [-1, 0.25, 0.55], dist: 26, aka: ['sprained ankle', 'rolled ankle', 'twisted ankle'] },
   { key: 'achilles-rupture', limb: 'leg', label: 'Achilles tendon rupture', id: 'achilles_tendon', type: G3, from: [-0.7, 0.1, -1], at: [0.5, 0.35, 0.5], dist: 34, aka: ['torn achilles', 'heel tendon'] },
@@ -119,7 +120,7 @@ export const COMMON = [
 
 // Extra words people type for a structure (lay words, abbreviations), by structure id on any page.
 export const SYNONYMS = {
-  femur: 'thighbone', tibia: 'shinbone', patella: 'knee cap', acl: 'cruciate', pcl: 'cruciate', mcl: 'medial collateral', lcl: 'lateral collateral',
+  femur: 'thighbone', tibia: 'shinbone', patella: 'knee cap chondromalacia', patellar_cartilage: 'chondromalacia kneecap cartilage', acl: 'cruciate', pcl: 'cruciate', mcl: 'medial collateral', lcl: 'lateral collateral',
   medial_meniscus: 'cartilage', lateral_meniscus: 'cartilage', achilles_tendon: 'heel cord', plantar_fascia: 'plantar fasciitis heel pain',
   atfl: 'ankle sprain', it_band: 'itb', hip_bone: 'pelvis', talus: 'ankle', calcaneus: 'heel',
   clavicle: 'collar bone', scapula: 'shoulder blade', humerus: 'arm bone', rotator_cuff_tendon: 'rotator cuff supraspinatus',
