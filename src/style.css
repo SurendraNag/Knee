@@ -6,6 +6,8 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); overflow: hidden; }
 body { -webkit-tap-highlight-color: transparent; }
+/* no double-tap page zoom on buttons and panels (iPhone Safari); the 3D view handles its own gestures */
+html { touch-action: manipulation; -webkit-text-size-adjust: 100%; }
 #app { position: fixed; inset: 0; background: radial-gradient(ellipse at 50% 40%, #1b2430 0%, #0e131a 55%, #07090c 100%); }
 #c { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 button, select { font: inherit; color: var(--text); background: rgba(255,255,255,0.06); border: 1px solid var(--line);
@@ -327,3 +329,25 @@ html:not(.patient) body.mode-injury .show-chip { left: var(--hist-right, 232px);
 .big-text .types button small { font-size: 14px; }
 .big-text .disclaimer { font-size: 14px; }
 .types .inj-types-head { grid-column: 1 / -1; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; opacity: .7; margin: 8px 0 2px; }
+
+/* Phones: while a part's card or the injury steps are open, keep the toolbar to two rows (views, then Display/Share)
+   so the model keeps room on screen. Go to and Find come back when the card is closed. */
+@media (max-width: 760px) {
+  html:not(.patient) body:has(#info:not(.hidden)) .toolbar .group.goto,
+  html:not(.patient) body:has(#info:not(.hidden)) .toolbar .group.find,
+  html:not(.patient) body.mode-injury .toolbar .group.goto,
+  html:not(.patient) body.mode-injury .toolbar .group.find { display: none; }
+}
+/* Body page on phones: the folded Systems box is just its title row, so it does not cover the chest and head */
+@media (max-width: 700px) {
+  .body-app .systems.collapsed .search, .body-app .systems.collapsed #private-parts { display: none; }
+  .body-app .systems.collapsed { width: auto; padding: 6px 8px; }
+  .body-app .systems.collapsed .systems-head { gap: 10px; }
+}
+/* the smallest iPhones (SE, mini zoomed): keep Home, the part menu, Explore and Injury on one row */
+@media (max-width: 360px) {
+  #part-nav { max-width: 92px; }
+  .modes { gap: 4px; }
+  .modes button { padding: 8px 8px; }
+  .group.goto { flex-basis: 112px; } .group.find { flex-basis: 100px; }
+}
