@@ -13,6 +13,8 @@ import { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } from 'three-
 import { makeMaterials } from './materials.js';
 import { fade } from './spine-structures.js';
 import { APP_VERSION } from './version.js';
+import { tapStart, isTap, fingerPick, lockPageZoom } from './touch.js';
+lockPageZoom();
 import './style.css';
 import './spine-move.css';
 
@@ -611,10 +613,11 @@ function hitAt(x, y) {
 }
 let drag = null, down = null;
 canvas.addEventListener('pointerdown', (e) => {
-  down = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId };
+  down = { ...tapStart(e), id: e.pointerId };
   if (!state.sel || e.button > 0) return;
-  const h = hitAt(e.clientX, e.clientY);
-  if (h && h.object.userData.id === state.sel) {
+  // a finger near the selected disc grabs it (it is thin when seen from the side)
+  const h = fingerPick(e.clientX, e.clientY, down.touch, (x, y) => { const k = hitAt(x, y); return k && k.object.userData.id === state.sel ? k : null; })?.hit;
+  if (h) {
     controls.enabled = false; canvas.setPointerCapture(e.pointerId);
     const w = discWorld(state.sel), proj = (v) => { const p = v.clone().project(camera); return new THREE.Vector2(p.x * canvas.clientWidth / 2, -p.y * canvas.clientHeight / 2); };
     const c0 = proj(w.c), ef = proj(w.c.clone().add(w.f)).sub(c0), es = proj(w.c.clone().add(w.s)).sub(c0);
@@ -637,8 +640,9 @@ canvas.addEventListener('pointermove', (e) => {
 const endDrag = (e) => { if (drag) { controls.enabled = true; try { canvas.releasePointerCapture(e.pointerId); } catch { /* already released */ } const moved = drag.moved; drag = null; if (!moved) down = { ...down, wasDisc: true }; } };
 canvas.addEventListener('pointerup', (e) => {
   endDrag(e);
-  if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 6 || performance.now() - down.t > 600) return;
-  const h = hitAt(e.clientX, e.clientY);
+  if (!isTap(down, e)) return;
+  // discs are thin: on touch screens the nearest part around the tap counts
+  const h = fingerPick(e.clientX, e.clientY, down.touch, hitAt)?.hit;
   if (!h) { if (!down.wasDisc) selectDisc(null, { fly: false }); return; }
   const { id, kind } = h.object.userData;
   if (kind === 'spinaldisc') { if (id !== state.sel) selectDisc(id); }
@@ -652,8 +656,9 @@ const LBL = [...V.map((v, k) => ({ text: NAME(v), k, v })), { text: 'Tailbone', 
 labelEl.innerHTML = LBL.map((l) => `<span class="lb">${l.text}</span>`).join('') + '<span class="lb sel"></span><span class="lb nerve"></span><span class="lb dir" data-d="front">Front</span><span class="lb dir" data-d="back">Back</span><span class="lb dir" data-d="left">Left</span><span class="lb dir" data-d="right">Right</span>';
 const lbEls = [...labelEl.children];
 const tailTip = new THREE.Vector3(0, -12.5, -2.5);
+const viewsEl = document.querySelector('.mv-views');
 function placeLabels() {
-  const W = canvas.clientWidth, H = canvas.clientHeight, show = state.labels && !state.top, topLimit = (W < 760 ? 106 : 104);
+  const W = canvas.clientWidth, H = canvas.clientHeight, show = state.labels && !state.top, topLimit = viewsEl.getBoundingClientRect().bottom + 4;
   const at = (p, el, on = true) => { if (!on) { el.style.display = 'none'; return null; } const q = p.clone().project(camera); if (q.z > 1 || Math.abs(q.x) > 1.05 || Math.abs(q.y) > 1.05) { el.style.display = 'none'; return null; } const x = (q.x + 1) * W / 2, y = (1 - q.y) * H / 2; if (y < topLimit) { el.style.display = 'none'; return null; } el.style.display = ''; el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -50%)`; return { x, y }; };
   // vertebra labels in front of each body; skip those that would overlap
   const dirFront = new THREE.Vector3(0, 0, 1);
@@ -720,7 +725,7 @@ function layout() {
   const w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h;
   // the panel covers part of the screen: centre the picture in the space beside (wide screens) or above it (narrow)
   const r = $('#panel').getBoundingClientRect();
-  if (w < 760) camera.setViewOffset(w, h, 0, (r.height - 96) / 2, w, h);
+  if (w < 760) camera.setViewOffset(w, h, 0, (r.height - document.querySelector('.mv-views').getBoundingClientRect().bottom) / 2, w, h);
   else camera.setViewOffset(w, h, -(r.right) / 2 + 8, 0, w, h);
   camera.updateProjectionMatrix(); schedule();
 }

@@ -9,6 +9,8 @@ import './pain.css';
 import { APP_VERSION } from './version.js';
 import { qrSvg, initBigText } from './qr.js';
 import { createModesty, REGIONS as PRIVATE } from './modesty.js';
+import { tapStart, isTap, fingerPick, lockPageZoom } from './touch.js';
+lockPageZoom();
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 const $ = (s) => document.querySelector(s);
@@ -441,7 +443,7 @@ canvas.addEventListener('pointerdown', (e) => {
   pointers.add(e.pointerId);
   if (pointers.size > 1) { if (stroke) endStroke(true); controls.enabled = true; down = null; return; }
   anim = null;
-  down = { x: e.clientX, y: e.clientY, t: performance.now() };
+  down = tapStart(e);
   if (viewOnly || tool !== 'area' || e.button > 0) return;
   const p = hitAt(e); if (!p) return;
   controls.enabled = false; // painting, not turning (runs before OrbitControls: capture phase)
@@ -478,9 +480,10 @@ const upHandler = (e) => {
   pointers.delete(e.pointerId);
   if (stroke) { endStroke(false); down = null; return; }
   if (!down || viewOnly || tool !== 'point') { down = null; return; }
-  const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y), dt = performance.now() - down.t; down = null;
-  if (moved > 8 || dt > 650) return;
-  const p = hitAt(e); if (!p) { if (editing >= 0) closeEditor(); return; }
+  const d = down; down = null;
+  if (!isTap(d, e)) return;
+  // a fingertip just off the edge of a hand or foot still marks it
+  const p = fingerPick(e.clientX, e.clientY, d.touch, (clientX, clientY) => hitAt({ clientX, clientY }))?.hit; if (!p) { if (editing >= 0) closeEditor(); return; }
   // tapping on an existing spot opens it rather than adding another
   const hitMark = marks.findIndex((m) => m.pts.some((q) => q.distanceTo(p) < Math.max(m.r * 0.7, 0.015)));
   if (hitMark >= 0) { openEditor(hitMark); return; }

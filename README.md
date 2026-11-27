@@ -310,6 +310,12 @@ Each release is tagged (`v0.1.0`, `v0.2.0-preview`, …) and deployed to its own
   hamstring strain, calf strain, bruised thigh (dead leg), compartment syndrome of the shin, crushed lower leg (crushed
   muscle, shin bone in several pieces, broken fibula), open fracture of the shin, DVT, fibular nerve injury (foot drop),
   low back muscle strain and crushed fingertip. All soft tissue injuries and their wording are for doctor review.
+- v0.25.0-preview: easier on iPhone. Tapping the 3D model is finger-sized on every page: a tap may wobble a little
+  (14 px) before it counts as turning the model, and when the exact point misses a thin part (ligament, nerve, vessel,
+  disc) the nearest part within about 20 px is chosen. iPhone Safari no longer zooms the whole page on a pinch over a
+  panel or a quick double tap on a button. On phones, while a part's card or the injury steps are open, the toolbar drops
+  its Go to and Find row so the model has room; the Body page's folded Systems box no longer covers the chest and head;
+  all Spine Movement view buttons fit on screen (two rows); the top row fits on an iPhone SE.
 - v0.24.0-preview: panel fixes round 4, after treatment. Bones now have an "After treatment" group: plate and screws, rod
   inside the bone (nail, long bones only), screws, cast, brace or splint, and joint replacement; ligaments can be shown
   reconstructed with a graft (with fixation screws). New quick picks: rod in the thigh bone, screws in a broken hip, hip

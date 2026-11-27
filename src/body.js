@@ -8,6 +8,8 @@ import { APP_VERSION } from './version.js';
 import { pageOf, keepParams } from './catalog.js';
 import { mountSearch, mountNav } from './search.js';
 import { createModesty, modestyButton, REGIONS as PRIVATE } from './modesty.js';
+import { tapStart, isTap, fingerPick, lockPageZoom } from './touch.js';
+lockPageZoom();
 
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
 const $ = (s) => document.querySelector(s);
@@ -296,7 +298,8 @@ $('#glass').onclick = () => { ui.glass = !ui.glass; $('#glass').setAttribute('ar
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
 ray.firstHitOnly = false;
 function partOfFace(info, f) { let lo = 0, hi = info.parts.length - 1; while (lo < hi) { const m = (lo + hi + 1) >> 1; if (info.parts[m].t0 <= f) lo = m; else hi = m - 1; } return lo; }
-function pick(x, y) {
+// the part under one screen point, or null
+function partAt(x, y) {
   ndc.set((x / innerWidth) * 2 - 1, -(y / innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera);
   const meshes = Object.values(packs).filter((pk) => pk.mesh && pk.mesh.visible && pk.info.id !== 'skin').map((pk) => pk.mesh);
   if (packs.skin?.mesh?.visible && !meshes.length) meshes.push(packs.skin.mesh);
@@ -305,15 +308,21 @@ function pick(x, y) {
   for (const h of hits) {
     const pk = packs[h.object.userData.pack], i = partOfFace(pk.info, h.faceIndex);
     if (pk.state[i * 4 + 3] === 0) continue;
-    return select(pk.info.id, i);
+    return { id: pk.info.id, i };
   }
-  select(null);
+  return null;
+}
+// a fingertip is wider than a nerve or vessel: on touch screens the nearest part around the tap counts
+function pick(x, y, touch) {
+  const near = fingerPick(x, y, touch, partAt);
+  if (near) select(near.hit.id, near.hit.i); else select(null);
 }
 let down = null;
-canvas.addEventListener('pointerdown', (e) => { down = { x: e.clientX, y: e.clientY, t: performance.now() }; anim = null; });
+canvas.addEventListener('pointerdown', (e) => { if (!e.isPrimary) return; down = tapStart(e); anim = null; });
+canvas.addEventListener('pointercancel', () => { down = null; });
 canvas.addEventListener('pointerup', (e) => {
-  if (!down) return; const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y);
-  if (moved < 6 && performance.now() - down.t < 500) pick(e.clientX, e.clientY);
+  if (!down || !e.isPrimary) return;
+  if (isTap(down, e)) pick(e.clientX, e.clientY, down.touch);
   down = null;
 });
 

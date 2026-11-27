@@ -46,7 +46,10 @@
   .mv .brand { font-size: 15px; white-space: nowrap; }
   .mv .brand .ver { display: none; }
   .mv .disclaimer { font-size: 11px; padding: 4px 8px; white-space: normal; text-align: center; max-width: 150px; line-height: 1.2; }
-  .mv-views { top: calc(52px + env(safe-area-inset-top)); left: 10px; right: 0; padding-right: 10px; }
+  /* all view buttons on screen: two rows instead of a strip that runs off the right edge */
+  .mv-views { top: calc(52px + env(safe-area-inset-top)); left: 10px; right: 10px; flex-wrap: wrap; overflow: visible; }
+  .mv-views .sep { display: none; }
+  .mv-views button { padding: 6px 10px; }
   .mv-panel { left: 0; right: 0; bottom: 0; width: auto; max-height: 48%; border-radius: 16px 16px 0 0; padding: 8px 12px calc(12px + env(safe-area-inset-bottom)); }
   .sl { grid-template-columns: 52px auto 1fr auto 74px; gap: 5px; font-size: 13.5px; }
   .mv .toast { top: calc(100px + env(safe-area-inset-top)); }

@@ -19,6 +19,8 @@ import { qrSvg, initBigText } from './qr.js';
 for (const s of Object.values(STRUCTURES)) if (!s.short && s.name) s.short = s.name.replace(/^([A-Z])(?![A-Z])/, (c) => c.toLowerCase());
 import { mountSearch, mountNav } from './search.js';
 import { createModesty, modestyButton, REGIONS as PRIVATE } from './modesty.js';
+import { tapStart, isTap, fingerPick, lockPageZoom } from './touch.js';
+lockPageZoom();
 export { APP_VERSION };
 const $ = (s) => document.querySelector(s);
 // ?patient=1: view-only page for patients (no editing of injuries); ?embed=1: inside a doctor's website (iframe)
@@ -447,15 +449,19 @@ function select(id, { glass = true } = {}) {
 // ---------- picking (tap vs drag) ----------
 const ray = new THREE.Raycaster(); ray.firstHitOnly = true;
 let down = null;
-canvas.addEventListener('pointerdown', (e) => { if (e.isPrimary) down = { x: e.clientX, y: e.clientY, t: performance.now() }; });
+canvas.addEventListener('pointerdown', (e) => { if (e.isPrimary) down = tapStart(e); });
+canvas.addEventListener('pointercancel', () => { down = null; });
 canvas.addEventListener('pointerup', (e) => {
   if (!down || !e.isPrimary) return;
-  const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y);
-  const dt = performance.now() - down.t; down = null;
-  if (moved > 8 || dt > 600) return;
+  const d = down; down = null;
+  if (!isTap(d, e)) return;
   const r = canvas.getBoundingClientRect();
-  const ndc = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
-  ray.setFromCamera(ndc, camera);
+  const aim = (x, y) => ray.setFromCamera(new THREE.Vector2(((x - r.left) / r.width) * 2 - 1, -((y - r.top) / r.height) * 2 + 1), camera);
+  // a fingertip is wider than a ligament or nerve: if the exact point misses, aim at the nearest part around it
+  // (not when placing an injury on its exact spot, which snaps to the chosen structure anyway)
+  const exactSpot = state.mode === 'injury' && state.step === 3 && !PATIENT;
+  const near = exactSpot ? null : fingerPick(e.clientX, e.clientY, d.touch, (x, y) => { aim(x, y); return state.mode === 'injury' && !PATIENT ? injuryHit() : pickHit(); });
+  if (near) aim(near.x, near.y); else aim(e.clientX, e.clientY);
   // double-click / double-tap: zoom in to the body part, then closer to the spot (not while placing an injury)
   const now = performance.now();
   const dbl = lastTap.t && now - lastTap.t < 400 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 30;
@@ -525,10 +531,14 @@ function injuryTap() {
     setStep(2);
     return;
   }
+  const hit = injuryHit();
+  if (hit) chooseInjTarget(hit.object.userData.id);
+}
+// the first structure under the ray that can be injured
+function injuryHit() {
   const pickable = Object.values(meshes).filter((m) => m.visible && !m.userData.faded && injuryKind(m.userData.id));
   const hits = ray.intersectObjects(Object.values(meshes).filter((m) => m.visible && !m.userData.faded), false).filter((h) => fadeAt(h.point) > 0.5 && inJoint(h.point));
-  const hit = hits.find((h) => pickable.includes(h.object));
-  if (hit) chooseInjTarget(hit.object.userData.id);
+  return hits.find((h) => pickable.includes(h.object)) || null;
 }
 
 // ---------- undo / redo of injuries (arrows at the top left, only while placing injuries) ----------
